@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accessibility_service_label">Analizador de ofertas RideGuard</string>
+    <string name="accessibility_service_description">Lee pago, tiempo y distancia de las ofertas visibles para calcular rentabilidad. Nunca acepta ni rechaza viajes.</string>
+</resources>
