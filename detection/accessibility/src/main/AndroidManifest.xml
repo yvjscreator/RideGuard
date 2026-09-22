@@ -7,7 +7,8 @@
             android:exported="false"
             android:label="@string/accessibility_service_label"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
-            android:process=":detector">
+            android:process=":detector"
+            android:stopWithTask="false">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />
             </intent-filter>

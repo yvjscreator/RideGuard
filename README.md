@@ -25,25 +25,23 @@ Todos los cálculos incluyen recogida y viaje:
 tiempo total = minutos hasta recogida + minutos del viaje
 distancia total = km hasta recogida + km del viaje
 ARS/km = pago / distancia total
-ARS/min = pago / tiempo total
 ARS/h = pago × 60 / tiempo total
 ```
 
 Con la oferta observada: 26 minutos, 7,0 km, aproximadamente ARS 558/km y ARS 9.007/h.
 
-Hay dos modos de objetivo:
+Cada oferta se compara con dos mínimos que deben cumplirse **a la vez**: ARS/h y ARS/km. Los valores iniciales son ARS 15.000/h y ARS 650/km de lunes a miércoles, y ARS 18.000/h y ARS 750/km de jueves a domingo. Se pueden editar en la app. El color del panel refleja la relación con ambos mínimos; no muestra etiquetas de clasificación.
 
-- Por hora: compara la oferta con un objetivo fijo de ARS/h.
-- Por jornada: recalcula la tasa necesaria con la meta y el tiempo restantes. Si una jornada de 6 horas tiene una meta de ARS 120.000 y después de 3 horas acumula ARS 70.000, la tasa requerida pasa a ARS 16.667/h.
+La app pregunta cuántas horas sueles trabajar y muestra una estimación bruta de la jornada: objetivo ARS/h × horas habituales. Es una referencia, no una predicción de ingresos reales.
 
-El mínimo ARS/km se evalúa siempre para proteger el costo del vehículo. Los porcentajes que separan verde, amarillo y rojo son configurables.
+Cada día puede habilitarse y tener horas de inicio y fin. El detector analiza ofertas únicamente dentro de esos horarios. Los turnos que cruzan medianoche conservan el perfil del día de inicio. Inicialmente todos los días están desactivados para que el usuario elija sus horas de trabajo.
 
 ## Arquitectura
 
 - `app`: interfaz Jetpack Compose y configuración.
 - `core:model`: ofertas, objetivos, métricas y contratos de parsers.
 - `core:calculator`: cálculo y clasificación sin dependencias de UI.
-- `core:settings`: persistencia local de objetivos y jornada.
+- `core:settings`: persistencia local de objetivos, horas habituales y horarios.
 - `detection:accessibility`: lectura limitada a paquetes de apps de conducción.
 - `detection:ocr`: módulo opcional de reconocimiento con ML Kit desde un `Bitmap` suministrado; no se empaqueta en la app principal.
 - `platforms:uber`, `platforms:cabify`, `platforms:didi`: parsers independientes.
@@ -72,10 +70,12 @@ Para compilar y validar también el módulo OCR:
 Después de instalar:
 
 1. Abre RideGuard.
-2. Configura tus objetivos.
+2. Configura los dos perfiles, tus horas habituales y activa los días/horarios de trabajo. Guarda.
 3. Pulsa **Abrir Accesibilidad**.
 4. Activa **Analizador de ofertas RideGuard**.
-5. Abre una app de conducción. Cuando aparezca una oferta completa, RideGuard mostrará ARS/h y ARS/km. El panel desaparece al cerrarse la oferta o, como máximo, tras 18 segundos.
+5. Dentro de tu horario, abre una app de conducción. Cuando aparezca una oferta completa, RideGuard mostrará únicamente ARS/h, ARS/km y los minutos/km totales. El panel desaparece al cerrarse la oferta o, como máximo, tras 18 segundos.
+
+El servicio de Accesibilidad permanece habilitado a nivel del sistema; el horario controla el **análisis**, no el permiso. [Android gestiona el ciclo de vida del servicio](https://developer.android.com/reference/android/accessibilityservice/AccessibilityService) después de que lo habilita el usuario. Si el sistema o el fabricante lo desactiva al cerrar la app o reiniciar, vuelve a activarlo desde la tarjeta de estado y revisa las [restricciones de batería](https://developer.android.com/topic/performance/background-optimization) y el autoinicio del teléfono. Una app normal no puede concederse ese permiso por sí misma.
 
 ## Privacidad y seguridad
 

@@ -6,14 +6,12 @@ import dev.rideguard.core.model.OfferGrade
 import dev.rideguard.core.model.OfferMetrics
 import dev.rideguard.core.model.RawOffer
 import dev.rideguard.core.model.TargetFailure
-import dev.rideguard.core.model.VisualThresholds
 import kotlin.math.min
 
 object OfferCalculator {
     fun evaluate(
         offer: RawOffer,
         goals: DriverGoals,
-        thresholds: VisualThresholds = VisualThresholds(),
     ): OfferEvaluation {
         require(offer.totalMinutes > 0) { "Total offer time must be positive" }
         require(offer.totalKm > 0.0) { "Total offer distance must be positive" }
@@ -33,11 +31,7 @@ object OfferCalculator {
             if (metrics.arsPerHour < requiredHourlyRate) add(TargetFailure.HOURLY_RATE)
             if (metrics.arsPerKm < goals.minimumArsPerKm) add(TargetFailure.PER_KM)
         }
-        val grade = when {
-            scoreRatio >= thresholds.goodMinimumRatio -> OfferGrade.GOOD
-            scoreRatio >= thresholds.warningMinimumRatio -> OfferGrade.WARNING
-            else -> OfferGrade.BAD
-        }
+        val grade = if (unmetTargets.isEmpty()) OfferGrade.GOOD else OfferGrade.BAD
 
         return OfferEvaluation(
             offer = offer,

@@ -4,7 +4,7 @@ import dev.rideguard.core.model.DriverGoals
 import dev.rideguard.core.model.OfferGrade
 import dev.rideguard.core.model.RawOffer
 import dev.rideguard.core.model.RidePlatform
-import dev.rideguard.core.model.TargetMode
+import dev.rideguard.core.model.TargetFailure
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -34,25 +34,24 @@ class OfferCalculatorTest {
     }
 
     @Test
-    fun `uses remaining shift target`() {
-        val goals = DriverGoals(
-            targetMode = TargetMode.SHIFT,
-            shiftDurationMinutes = 360,
-            dailyTargetArs = 120_000.0,
-            elapsedShiftMinutes = 180,
-            earningsSoFarArs = 70_000.0,
+    fun `hourly rate alone does not make an offer good`() {
+        val result = OfferCalculator.evaluate(
+            observedUberOffer,
+            DriverGoals(targetArsPerHour = 9_000.0, minimumArsPerKm = 650.0),
         )
 
-        assertEquals(16_666.67, goals.requiredArsPerHour(), 0.01)
+        assertEquals(true, result.grade != OfferGrade.GOOD)
+        assertEquals(setOf(TargetFailure.PER_KM), result.unmetTargets)
     }
 
     @Test
-    fun `bad when hourly target is missed`() {
+    fun `per kilometer rate alone does not make an offer good`() {
         val result = OfferCalculator.evaluate(
             observedUberOffer,
             DriverGoals(targetArsPerHour = 20_000.0, minimumArsPerKm = 500.0),
         )
 
         assertEquals(OfferGrade.BAD, result.grade)
+        assertEquals(setOf(TargetFailure.HOURLY_RATE), result.unmetTargets)
     }
 }

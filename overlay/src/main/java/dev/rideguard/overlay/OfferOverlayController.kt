@@ -14,7 +14,6 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import dev.rideguard.core.model.OfferEvaluation
 import dev.rideguard.core.model.OfferGrade
-import dev.rideguard.core.model.VisualThresholds
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -26,13 +25,12 @@ class OfferOverlayController(
     private var overlay: View? = null
     private var hideGeneration = 0
 
-    fun show(evaluation: OfferEvaluation, thresholds: VisualThresholds) {
+    fun show(evaluation: OfferEvaluation) {
         hide()
         val backgroundColor = when (evaluation.grade) {
-            OfferGrade.GOOD -> thresholds.goodColorArgb
-            OfferGrade.WARNING -> thresholds.warningColorArgb
-            OfferGrade.BAD -> thresholds.badColorArgb
-        }.toInt()
+            OfferGrade.GOOD -> 0xFF2E7D32.toInt()
+            OfferGrade.BAD -> 0xFFC62828.toInt()
+        }
 
         val panel = LinearLayout(service).apply {
             orientation = LinearLayout.VERTICAL
@@ -43,10 +41,9 @@ class OfferOverlayController(
                 setStroke(dp(2), Color.WHITE)
             }
             contentDescription = service.getString(R.string.overlay_close)
-            addView(metricText(gradeLabel(evaluation.grade), 18f, Typeface.BOLD))
             addView(metricText("${money(evaluation.metrics.arsPerHour)}/h", 28f, Typeface.BOLD))
             addView(metricText("${money(evaluation.metrics.arsPerKm)}/km", 21f, Typeface.BOLD))
-            addView(metricText("${evaluation.metrics.totalMinutes} min · ${decimal(evaluation.metrics.totalKm)} km", 14f, Typeface.NORMAL))
+            addView(metricText("${evaluation.metrics.totalMinutes} min - ${decimal(evaluation.metrics.totalKm)} km", 14f, Typeface.NORMAL))
         }
 
         val params = WindowManager.LayoutParams(
@@ -85,12 +82,6 @@ class OfferOverlayController(
         setTextColor(Color.WHITE)
         setTypeface(typeface, style)
         gravity = Gravity.END
-    }
-
-    private fun gradeLabel(grade: OfferGrade): String = when (grade) {
-        OfferGrade.GOOD -> "BUENA"
-        OfferGrade.WARNING -> "REVISAR"
-        OfferGrade.BAD -> "MALA"
     }
 
     private fun money(value: Double): String = NumberFormat

@@ -14,6 +14,7 @@ import dev.rideguard.core.calculator.OfferCalculator
 import dev.rideguard.core.settings.RideGuardSettings
 import dev.rideguard.core.settings.RideGuardSettingsStore
 import dev.rideguard.overlay.OfferOverlayController
+import java.time.LocalDateTime
 
 class OfferAccessibilityService : AccessibilityService() {
     private val registry = PlatformParserRegistry()
@@ -23,12 +24,17 @@ class OfferAccessibilityService : AccessibilityService() {
     private val eventHandler = Handler(Looper.getMainLooper())
     private var pendingPackageName: String? = null
     private var scanScheduled = false
+    private var receiverRegistered = false
     private var lastSignature: String? = null
     private var lastShownAtMs: Long = 0L
     private var lastScanAtMs: Long = 0L
     private val settingsReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            intent?.let(DetectorSettingsBroadcast::read)?.let { currentSettings = it }
+            intent?.let(DetectorSettingsBroadcast::read)?.let {
+                currentSettings = it
+                lastSignature = null
+                if (it.goalsFor(LocalDateTime.now()) == null && ::overlay.isInitialized) overlay.hide()
+            }
         }
     }
 
@@ -36,17 +42,25 @@ class OfferAccessibilityService : AccessibilityService() {
         settingsStore = RideGuardSettingsStore(this)
         currentSettings = settingsStore.load()
         overlay = OfferOverlayController(this)
-        ContextCompat.registerReceiver(
-            this,
-            settingsReceiver,
-            IntentFilter(DetectorSettingsBroadcast.ACTION),
-            ContextCompat.RECEIVER_NOT_EXPORTED,
-        )
+        if (!receiverRegistered) {
+            ContextCompat.registerReceiver(
+                this,
+                settingsReceiver,
+                IntentFilter(DetectorSettingsBroadcast.ACTION),
+                ContextCompat.RECEIVER_NOT_EXPORTED,
+            )
+            receiverRegistered = true
+        }
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         val packageName = event?.packageName?.toString() ?: return
         registry.forPackage(packageName) ?: return
+        if (currentSettings.goalsFor(LocalDateTime.now()) == null) {
+            lastSignature = null
+            if (::overlay.isInitialized) overlay.hide()
+            return
+        }
         pendingPackageName = packageName
         if (scanScheduled) return
         scanScheduled = true
@@ -60,7 +74,13 @@ class OfferAccessibilityService : AccessibilityService() {
         val packageName = pendingPackageName ?: return
         val parser = registry.forPackage(packageName) ?: return
         lastScanAtMs = SystemClock.elapsedRealtime()
+        val goals = currentSettings.goalsFor(LocalDateTime.now()) ?: run {
+            lastSignature = null
+            if (::overlay.isInitialized) overlay.hide()
+            return
+        }
         val root = rootInActiveWindow ?: return
+        if (root.packageName?.toString() != packageName) return
         val screenText = AccessibilityTextReader.read(root)
         val offer = parser.parse(screenText)
         if (offer == null) {
@@ -80,12 +100,12 @@ class OfferAccessibilityService : AccessibilityService() {
         if (signature == lastSignature && now - lastShownAtMs < DUPLICATE_WINDOW_MS) return
 
         val evaluation = runCatching {
-            OfferCalculator.evaluate(offer, currentSettings.goals, currentSettings.thresholds)
+            OfferCalculator.evaluate(offer, goals)
         }.getOrNull() ?: return
 
         lastSignature = signature
         lastShownAtMs = now
-        overlay.show(evaluation, currentSettings.thresholds)
+        runCatching { overlay.show(evaluation) }
     }
 
     override fun onInterrupt() {
@@ -95,7 +115,7 @@ class OfferAccessibilityService : AccessibilityService() {
     override fun onDestroy() {
         eventHandler.removeCallbacksAndMessages(null)
         if (::overlay.isInitialized) overlay.hide()
-        runCatching { unregisterReceiver(settingsReceiver) }
+        if (receiverRegistered) runCatching { unregisterReceiver(settingsReceiver) }
         super.onDestroy()
     }
 
