@@ -25,6 +25,21 @@ class WorkScheduleTest {
         assertEquals(null, schedule.activeDay(LocalDateTime.of(2026, 9, 22, 2, 0)))
     }
 
+    @Test
+    fun `monday schedule can be copied to every day and customized afterward`() {
+        val copied = withDay(DayOfWeek.MONDAY, 22 * 60, 2 * 60).copyMondayToAllDays()
+
+        assertEquals(7, copied.days.count { it.enabled })
+        assertEquals(true, copied.days.all { it.startMinute == 22 * 60 && it.endMinute == 2 * 60 })
+        assertEquals(DayOfWeek.MONDAY, copied.activeDay(LocalDateTime.of(2026, 9, 22, 1, 0)))
+
+        val customized = WeeklySchedule(copied.days.map { day ->
+            if (day.day == DayOfWeek.TUESDAY) day.copy(startMinute = 9 * 60, endMinute = 17 * 60) else day
+        })
+        assertEquals(22 * 60, customized.days.first { it.day == DayOfWeek.MONDAY }.startMinute)
+        assertEquals(9 * 60, customized.days.first { it.day == DayOfWeek.TUESDAY }.startMinute)
+    }
+
     private fun withDay(day: DayOfWeek, start: Int, end: Int) = WeeklySchedule(
         DayOfWeek.values().map {
             if (it == day) WorkDaySchedule(it, true, start, end) else WorkDaySchedule(it)

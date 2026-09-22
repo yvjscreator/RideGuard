@@ -1,6 +1,7 @@
 package dev.rideguard.app
 
 import android.accessibilityservice.AccessibilityServiceInfo
+import android.app.TimePickerDialog
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -35,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -100,8 +102,6 @@ private fun SettingsScreen(
     var usualHours by remember { mutableStateOf(initial.usualWorkHours.plain()) }
     var schedule by remember { mutableStateOf(initial.schedule) }
     var savedSchedule by remember { mutableStateOf(initial.schedule) }
-    var starts by remember { mutableStateOf(initial.schedule.days.map { formatTime(it.startMinute) }) }
-    var ends by remember { mutableStateOf(initial.schedule.days.map { formatTime(it.endMinute) }) }
     var message by remember { mutableStateOf("") }
 
     val hours = usualHours.numberOrNull()?.takeIf { it > 0.0 && it <= 24.0 }
@@ -109,6 +109,7 @@ private fun SettingsScreen(
     val busyEstimate = busyHourly.numberOrNull()?.let { hourly -> hours?.let { hourly * it } }
     val today = LocalDateTime.now()
     val activeNow = savedSchedule.activeDay(today) != null
+    val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
     val estimatedWait = String.format(Locale.forLanguageTag("es-AR"), "%.2f", PickupWaitEstimate.MINUTES)
 
@@ -155,7 +156,7 @@ private fun SettingsScreen(
             }
 
             Text("Horarios de trabajo", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text("Activa los días y define las horas. Fuera del horario, RideGuard no analiza ofertas. Un horario como 22:00 a 02:00 cruza medianoche.")
+            Text("Activa el lunes y toca las horas para elegirlas. Puedes copiar ese horario a toda la semana y luego editar o desactivar cualquier día. Un horario como 22:00 a 02:00 cruza medianoche; fuera del horario RideGuard no analiza ofertas.")
             schedule.days.forEachIndexed { index, day ->
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -169,15 +170,47 @@ private fun SettingsScreen(
                         }
                         if (day.enabled) {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                TimeField("Desde", starts[index], Modifier.weight(1f)) { value ->
-                                    starts = starts.toMutableList().apply { this[index] = value }
+                                TimeField("Desde", day.startMinute, Modifier.weight(1f)) {
+                                    showTimePicker(context, day.startMinute) { selected ->
+                                        val current = schedule.days[index]
+                                        val end = if (selected == 0 && current.endMinute == 0) 1440 else current.endMinute
+                                        if (selected == end) {
+                                            message = "El inicio y el fin deben ser distintos."
+                                        } else {
+                                            schedule = WeeklySchedule(schedule.days.toMutableList().apply {
+                                                this[index] = current.copy(startMinute = selected, endMinute = end)
+                                            })
+                                            message = ""
+                                        }
+                                    }
                                 }
-                                TimeField("Hasta", ends[index], Modifier.weight(1f)) { value ->
-                                    ends = ends.toMutableList().apply { this[index] = value }
+                                TimeField("Hasta", day.endMinute, Modifier.weight(1f)) {
+                                    showTimePicker(context, day.endMinute) { selected ->
+                                        val current = schedule.days[index]
+                                        val end = if (selected == 0 && current.startMinute == 0) 1440 else selected
+                                        if (current.startMinute == end) {
+                                            message = "El inicio y el fin deben ser distintos."
+                                        } else {
+                                            schedule = WeeklySchedule(schedule.days.toMutableList().apply {
+                                                this[index] = current.copy(endMinute = end)
+                                            })
+                                            message = ""
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
+                }
+                if (day.day == DayOfWeek.MONDAY) {
+                    OutlinedButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = day.enabled,
+                        onClick = {
+                            schedule = schedule.copyMondayToAllDays()
+                            message = "Horario del lunes aplicado a todos los días. Puedes editarlos o desactivarlos antes de guardar."
+                        },
+                    ) { Text("Copiar lunes a toda la semana") }
                 }
             }
             if (schedule.days.none { it.enabled }) {
@@ -196,23 +229,11 @@ private fun SettingsScreen(
                     message = "Completa metas positivas y una jornada de hasta 24 horas."
                     return@Button
                 }
-                val configuredDays = schedule.days.mapIndexed { index, day ->
-                    if (!day.enabled) day else {
-                        val start = parseTime(starts[index], isEnd = false)
-                        val end = parseTime(ends[index], isEnd = true)
-                        if (start == null || end == null || start == end) null
-                        else day.copy(startMinute = start, endMinute = end)
-                    }
-                }
-                if (configuredDays.any { it == null }) {
-                    message = "Revisa las horas: usa HH:mm y un inicio distinto del final."
-                    return@Button
-                }
                 val settings = RideGuardSettings(
                     regularGoals = DriverGoals(regularHour ?: return@Button, regularDistance ?: return@Button),
                     busyDaysGoals = DriverGoals(busyHour ?: return@Button, busyDistance ?: return@Button),
-                    usualWorkHours = workHours ?: return@Button,
-                    schedule = WeeklySchedule(configuredDays.filterNotNull()),
+                    usualWorkHours = workHours,
+                    schedule = schedule,
                 )
                 if (onSave(settings)) {
                     schedule = settings.schedule
@@ -269,20 +290,23 @@ private fun NumberField(label: String, value: String, onValueChange: (String) ->
 }
 
 @Composable
-private fun TimeField(label: String, value: String, modifier: Modifier, onValueChange: (String) -> Unit) {
-    OutlinedTextField(
-        modifier = modifier, value = value,
-        onValueChange = { raw -> onValueChange(raw.filter { it.isDigit() || it == ':' }.take(5)) },
-        label = { Text(label) }, placeholder = { Text("HH:mm") }, singleLine = true,
-    )
+private fun TimeField(label: String, minutes: Int, modifier: Modifier, onClick: () -> Unit) {
+    OutlinedButton(modifier = modifier, onClick = onClick) {
+        Column {
+            Text(label, style = MaterialTheme.typography.labelSmall)
+            Text(formatTime(minutes), style = MaterialTheme.typography.titleMedium)
+        }
+    }
 }
 
-private fun parseTime(raw: String, isEnd: Boolean): Int? {
-    val match = Regex("^(\\d{1,2}):(\\d{2})$").matchEntire(raw.trim()) ?: return null
-    val hour = match.groupValues[1].toIntOrNull() ?: return null
-    val minute = match.groupValues[2].toIntOrNull() ?: return null
-    if (minute !in 0..59 || hour !in 0..24 || hour == 24 && (!isEnd || minute != 0)) return null
-    return hour * 60 + minute
+private fun showTimePicker(context: Context, currentMinutes: Int, onSelected: (Int) -> Unit) {
+    TimePickerDialog(
+        context,
+        { _, hour, minute -> onSelected(hour * 60 + minute) },
+        (currentMinutes / 60) % 24,
+        currentMinutes % 60,
+        true,
+    ).show()
 }
 
 private fun formatTime(minutes: Int): String = "%02d:%02d".format(Locale.US, minutes / 60, minutes % 60)

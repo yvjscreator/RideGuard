@@ -40,7 +40,7 @@ Para un viaje individual, el pago mínimo que cumple ambos objetivos es el mayor
 
 El color es un filtro de la **oferta bruta**, no una garantía de rentabilidad de la jornada. La espera al recoger puede diferir de la media histórica; la espera entre viajes, kilómetros sin oferta, combustible, mantenimiento y desgaste del auto reducen el resultado real. La tarjeta de jornada supone que cada minuto de trabajo se factura al objetivo indicado y no descuenta gastos. Los umbrales personales deben calibrarse con ingresos, horas conectadas y kilómetros de odómetro de varias jornadas reales.
 
-Cada día puede habilitarse y tener horas de inicio y fin. El detector analiza ofertas únicamente dentro de esos horarios. Los turnos que cruzan medianoche conservan el perfil del día de inicio. Inicialmente todos los días están desactivados para que el usuario elija sus horas de trabajo.
+Cada día puede habilitarse y tener horas de inicio y fin elegidas con el selector horario de Android. Configura y activa el lunes; **Copiar lunes a toda la semana** aplica ese horario y activa los siete días. Después puedes cambiar o desactivar cualquier día antes de guardar. El detector analiza ofertas únicamente dentro de esos horarios. Los turnos que cruzan medianoche conservan el perfil del día de inicio. Inicialmente todos los días están desactivados para que el usuario elija sus horas de trabajo.
 
 ## Arquitectura
 
@@ -76,7 +76,7 @@ Para compilar y validar también el módulo OCR:
 Después de instalar:
 
 1. Abre RideGuard.
-2. Configura los dos perfiles, tus horas habituales y activa los días/horarios de trabajo. Guarda.
+2. Configura los dos perfiles y tus horas habituales. Activa el lunes, toca sus horas para elegirlas y, si quieres, cópialas a toda la semana. Ajusta o desactiva los demás días y guarda.
 3. Pulsa **Abrir Accesibilidad**.
 4. Activa **Analizador de ofertas RideGuard**.
 5. Dentro de tu horario, abre una app de conducción. Cuando aparezca una oferta completa, RideGuard mostrará únicamente ARS/h, ARS/km, tiempo total estimado y kilómetros totales. El panel desaparece al cerrarse la oferta o, como máximo, tras 18 segundos.

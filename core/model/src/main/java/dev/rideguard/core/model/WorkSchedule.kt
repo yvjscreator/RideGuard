@@ -23,6 +23,13 @@ data class WeeklySchedule(
         require(days.size == 7 && days.map { it.day }.toSet().size == 7)
     }
 
+    fun copyMondayToAllDays(): WeeklySchedule {
+        val monday = days.first { it.day == DayOfWeek.MONDAY }
+        return WeeklySchedule(days.map { day ->
+            day.copy(enabled = true, startMinute = monday.startMinute, endMinute = monday.endMinute)
+        })
+    }
+
     fun activeDay(at: LocalDateTime): DayOfWeek? {
         val current = days.first { it.day == at.dayOfWeek }
         val minute = at.hour * 60 + at.minute
