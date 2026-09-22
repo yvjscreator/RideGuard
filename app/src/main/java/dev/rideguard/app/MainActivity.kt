@@ -118,6 +118,8 @@ private fun SettingsScreen(
 
             Text("Objetivos por día", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text("Una oferta cumple solo si alcanza el mínimo por hora y por kilómetro. La recogida está incluida.")
+            Text("Verde: cumple ambos. Ámbar: queda hasta 5 % por debajo. Rojo: alguno queda más lejos.",
+                style = MaterialTheme.typography.bodySmall)
             ProfileCard("Lunes a miércoles", regularHourly, regularKm,
                 onHourlyChange = { regularHourly = it }, onKmChange = { regularKm = it })
             ProfileCard("Jueves a domingo", busyHourly, busyKm,
@@ -130,7 +132,7 @@ private fun SettingsScreen(
                     Text("Ganancias estimadas en jornada de ${hours?.plain() ?: "—"} horas")
                     Text("Lun–Mié: ${regularEstimate?.money() ?: "—"}")
                     Text("Jue–Dom: ${busyEstimate?.money() ?: "—"}")
-                    Text("Estimación bruta: objetivo por hora × horas habituales; no predice viajes reales.",
+                    Text("Referencia bruta: objetivo por hora × horas habituales. Supone viajes sin esperas y no descuenta gastos del auto.",
                         style = MaterialTheme.typography.bodySmall)
                 }
             }

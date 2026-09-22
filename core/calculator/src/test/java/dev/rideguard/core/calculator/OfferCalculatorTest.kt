@@ -54,4 +54,40 @@ class OfferCalculatorTest {
         assertEquals(OfferGrade.BAD, result.grade)
         assertEquals(setOf(TargetFailure.HOURLY_RATE), result.unmetTargets)
     }
+
+    @Test
+    fun `one peso below the minimum is near but not good`() {
+        val offer = observedUberOffer.copy(
+            fareArs = 749.0,
+            pickupMinutes = 0,
+            pickupKm = 0.0,
+            tripMinutes = 3,
+            tripKm = 1.0,
+        )
+        val goals = DriverGoals(targetArsPerHour = 15_000.0, minimumArsPerKm = 750.0)
+
+        val result = OfferCalculator.evaluate(offer, goals)
+
+        assertEquals(OfferGrade.NEAR, result.grade)
+        assertEquals(setOf(TargetFailure.HOURLY_RATE, TargetFailure.PER_KM), result.unmetTargets)
+        assertEquals(OfferGrade.GOOD, OfferCalculator.evaluate(offer.copy(fareArs = 750.0), goals).grade)
+    }
+
+    @Test
+    fun `an offer further than five percent below either minimum is bad`() {
+        val offer = observedUberOffer.copy(
+            fareArs = 700.0,
+            pickupMinutes = 0,
+            pickupKm = 0.0,
+            tripMinutes = 3,
+            tripKm = 1.0,
+        )
+
+        val result = OfferCalculator.evaluate(
+            offer,
+            DriverGoals(targetArsPerHour = 15_000.0, minimumArsPerKm = 750.0),
+        )
+
+        assertEquals(OfferGrade.BAD, result.grade)
+    }
 }

@@ -9,6 +9,7 @@ enum class RidePlatform {
 
 enum class OfferGrade {
     GOOD,
+    NEAR,
     BAD,
 }
 

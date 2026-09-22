@@ -30,9 +30,13 @@ ARS/h = pago × 60 / tiempo total
 
 Con la oferta observada: 26 minutos, 7,0 km, aproximadamente ARS 558/km y ARS 9.007/h.
 
-Cada oferta se compara con dos mínimos que deben cumplirse **a la vez**: ARS/h y ARS/km. Los valores iniciales son ARS 15.000/h y ARS 650/km de lunes a miércoles, y ARS 18.000/h y ARS 750/km de jueves a domingo. Se pueden editar en la app. El color del panel refleja la relación con ambos mínimos; no muestra etiquetas de clasificación.
+Cada oferta se compara con dos mínimos que deben cumplirse **a la vez**: ARS/h y ARS/km. Los valores iniciales son ARS 15.000/h y ARS 650/km de lunes a miércoles, y ARS 18.000/h y ARS 750/km de jueves a domingo. Se pueden editar en la app. El panel es verde si cumple ambos, ámbar si queda como máximo un 5 % por debajo de alguno (y ninguno cae más lejos), y rojo si alguno queda más de un 5 % por debajo. El ámbar no significa que cumpla el mínimo; solo evita que una diferencia pequeña se vea igual que una oferta muy mala. No muestra etiquetas de clasificación.
 
 La app pregunta cuántas horas sueles trabajar y muestra una estimación bruta de la jornada: objetivo ARS/h × horas habituales. Es una referencia, no una predicción de ingresos reales.
+
+Para un viaje individual, el pago mínimo que cumple ambos objetivos es el mayor entre `objetivo ARS/h × minutos totales / 60` y `mínimo ARS/km × km totales`. Por ejemplo, una oferta de 17 minutos y 4 km que paga ARS 3.604 equivale a ARS 12.720/h y ARS 901/km. Aunque supera los mínimos por kilómetro, necesitaría ARS 4.250 de lunes a miércoles o ARS 5.100 de jueves a domingo para cumplir el objetivo por hora.
+
+El color es un filtro de la **oferta bruta**, no una garantía de rentabilidad de la jornada. La espera entre viajes, kilómetros sin oferta, combustible, mantenimiento y desgaste del auto reducen el resultado real. La tarjeta de jornada supone que cada minuto de trabajo se factura al objetivo indicado y no descuenta gastos. Los umbrales personales deben calibrarse con ingresos, horas conectadas y kilómetros de odómetro de varias jornadas reales.
 
 Cada día puede habilitarse y tener horas de inicio y fin. El detector analiza ofertas únicamente dentro de esos horarios. Los turnos que cruzan medianoche conservan el perfil del día de inicio. Inicialmente todos los días están desactivados para que el usuario elija sus horas de trabajo.
 

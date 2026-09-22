@@ -31,7 +31,11 @@ object OfferCalculator {
             if (metrics.arsPerHour < requiredHourlyRate) add(TargetFailure.HOURLY_RATE)
             if (metrics.arsPerKm < goals.minimumArsPerKm) add(TargetFailure.PER_KM)
         }
-        val grade = if (unmetTargets.isEmpty()) OfferGrade.GOOD else OfferGrade.BAD
+        val grade = when {
+            unmetTargets.isEmpty() -> OfferGrade.GOOD
+            scoreRatio >= NEAR_MINIMUM_RATIO -> OfferGrade.NEAR
+            else -> OfferGrade.BAD
+        }
 
         return OfferEvaluation(
             offer = offer,
@@ -45,4 +49,6 @@ object OfferCalculator {
 
     private fun ratio(actual: Double, target: Double): Double =
         if (target <= 0.0) Double.POSITIVE_INFINITY else actual / target
+
+    private const val NEAR_MINIMUM_RATIO = 0.95
 }

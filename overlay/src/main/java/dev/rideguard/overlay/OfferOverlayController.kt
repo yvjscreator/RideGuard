@@ -29,6 +29,7 @@ class OfferOverlayController(
         hide()
         val backgroundColor = when (evaluation.grade) {
             OfferGrade.GOOD -> 0xFF2E7D32.toInt()
+            OfferGrade.NEAR -> 0xFFF9A825.toInt()
             OfferGrade.BAD -> 0xFFC62828.toInt()
         }
 
