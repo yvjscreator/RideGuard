@@ -4,6 +4,7 @@ import dev.rideguard.core.model.DriverGoals
 import dev.rideguard.core.model.OfferEvaluation
 import dev.rideguard.core.model.OfferGrade
 import dev.rideguard.core.model.OfferMetrics
+import dev.rideguard.core.model.PickupWaitEstimate
 import dev.rideguard.core.model.RawOffer
 import dev.rideguard.core.model.TargetFailure
 import kotlin.math.min
@@ -16,24 +17,25 @@ object OfferCalculator {
         require(offer.totalMinutes > 0) { "Total offer time must be positive" }
         require(offer.totalKm > 0.0) { "Total offer distance must be positive" }
 
+        val estimatedTotalMinutes = offer.totalMinutes + PickupWaitEstimate.MINUTES
         val metrics = OfferMetrics(
-            totalMinutes = offer.totalMinutes,
+            totalMinutes = estimatedTotalMinutes,
             totalKm = offer.totalKm,
             arsPerKm = offer.fareArs / offer.totalKm,
-            arsPerMinute = offer.fareArs / offer.totalMinutes,
-            arsPerHour = offer.fareArs * 60.0 / offer.totalMinutes,
+            arsPerMinute = offer.fareArs / estimatedTotalMinutes,
+            arsPerHour = offer.fareArs * 60.0 / estimatedTotalMinutes,
         )
         val requiredHourlyRate = goals.requiredArsPerHour()
         val hourlyRatio = ratio(metrics.arsPerHour, requiredHourlyRate)
         val kmRatio = ratio(metrics.arsPerKm, goals.minimumArsPerKm)
         val scoreRatio = min(hourlyRatio, kmRatio)
         val unmetTargets = buildSet {
-            if (metrics.arsPerHour < requiredHourlyRate) add(TargetFailure.HOURLY_RATE)
-            if (metrics.arsPerKm < goals.minimumArsPerKm) add(TargetFailure.PER_KM)
+            if (hourlyRatio < 1.0 - ROUNDING_TOLERANCE) add(TargetFailure.HOURLY_RATE)
+            if (kmRatio < 1.0 - ROUNDING_TOLERANCE) add(TargetFailure.PER_KM)
         }
         val grade = when {
             unmetTargets.isEmpty() -> OfferGrade.GOOD
-            scoreRatio >= NEAR_MINIMUM_RATIO -> OfferGrade.NEAR
+            scoreRatio >= NEAR_MINIMUM_RATIO - ROUNDING_TOLERANCE -> OfferGrade.NEAR
             else -> OfferGrade.BAD
         }
 
@@ -51,4 +53,5 @@ object OfferCalculator {
         if (target <= 0.0) Double.POSITIVE_INFINITY else actual / target
 
     private const val NEAR_MINIMUM_RATIO = 0.95
+    private const val ROUNDING_TOLERANCE = 1e-12
 }

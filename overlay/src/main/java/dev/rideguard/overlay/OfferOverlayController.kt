@@ -44,7 +44,7 @@ class OfferOverlayController(
             contentDescription = service.getString(R.string.overlay_close)
             addView(metricText("${money(evaluation.metrics.arsPerHour)}/h", 28f, Typeface.BOLD))
             addView(metricText("${money(evaluation.metrics.arsPerKm)}/km", 21f, Typeface.BOLD))
-            addView(metricText("${evaluation.metrics.totalMinutes} min - ${decimal(evaluation.metrics.totalKm)} km", 14f, Typeface.NORMAL))
+            addView(metricText("${decimal(evaluation.metrics.totalMinutes)} min - ${decimal(evaluation.metrics.totalKm)} km", 14f, Typeface.NORMAL))
         }
 
         val params = WindowManager.LayoutParams(

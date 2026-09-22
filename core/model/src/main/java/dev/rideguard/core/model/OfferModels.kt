@@ -34,7 +34,8 @@ data class DriverGoals(
 }
 
 data class OfferMetrics(
-    val totalMinutes: Int,
+    /** Pickup, trip, and the estimated wait for the passenger to board. */
+    val totalMinutes: Double,
     val totalKm: Double,
     val arsPerKm: Double,
     val arsPerMinute: Double,

@@ -26,6 +26,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -34,11 +35,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import dev.rideguard.core.model.DriverGoals
+import dev.rideguard.core.model.PickupWaitEstimate
 import dev.rideguard.core.model.WeeklySchedule
 import dev.rideguard.core.settings.RideGuardSettings
 import dev.rideguard.core.settings.RideGuardSettingsStore
@@ -106,6 +109,8 @@ private fun SettingsScreen(
     val busyEstimate = busyHourly.numberOrNull()?.let { hourly -> hours?.let { hourly * it } }
     val today = LocalDateTime.now()
     val activeNow = savedSchedule.activeDay(today) != null
+    val uriHandler = LocalUriHandler.current
+    val estimatedWait = String.format(Locale.forLanguageTag("es-AR"), "%.2f", PickupWaitEstimate.MINUTES)
 
     Scaffold { padding ->
         Column(
@@ -117,7 +122,7 @@ private fun SettingsScreen(
             ServiceCard(accessibilityEnabled, activeNow, onOpenAccessibility, onOpenAppInfo)
 
             Text("Objetivos por día", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text("Una oferta cumple solo si alcanza el mínimo por hora y por kilómetro. La recogida está incluida.")
+            Text("Una oferta cumple solo si alcanza el mínimo por hora y por kilómetro. La recogida y la espera estimada están incluidas.")
             Text("Verde: cumple ambos. Ámbar: queda hasta 5 % por debajo. Rojo: alguno queda más lejos.",
                 style = MaterialTheme.typography.bodySmall)
             ProfileCard("Lunes a miércoles", regularHourly, regularKm,
@@ -127,12 +132,24 @@ private fun SettingsScreen(
 
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Espera al recoger", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Sumamos $estimatedWait min estimados desde que llegas hasta que el pasajero sube. El tiempo del panel, los ARS/h y el color incluyen esa espera; los ARS/km no cambian.")
+                    Text("Es una media histórica de 416 viajes Uber/Lyft en Denver, no una medición argentina ni de tus viajes. No incluye esperas entre ofertas; un posible pago por espera puede cambiar el ingreso final.",
+                        style = MaterialTheme.typography.bodySmall)
+                    TextButton(onClick = { uriHandler.openUri(PickupWaitEstimate.STUDY_URL) }) {
+                        Text("Ver estudio")
+                    }
+                }
+            }
+
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Jornada habitual", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     NumberField("Normalmente, ¿cuántas horas trabajas?", usualHours) { usualHours = it }
                     Text("Ganancias estimadas en jornada de ${hours?.plain() ?: "—"} horas")
                     Text("Lun–Mié: ${regularEstimate?.money() ?: "—"}")
                     Text("Jue–Dom: ${busyEstimate?.money() ?: "—"}")
-                    Text("Referencia bruta: objetivo por hora × horas habituales. Supone viajes sin esperas y no descuenta gastos del auto.",
+                    Text("Referencia bruta: objetivo por hora × horas habituales. Supone actividad continua, sin esperas entre viajes ni gastos del auto.",
                         style = MaterialTheme.typography.bodySmall)
                 }
             }

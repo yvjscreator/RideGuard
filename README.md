@@ -19,24 +19,26 @@ Los parsers de Cabify y DiDi incluyen formatos iniciales y tests sintéticos. De
 
 ## Cálculo
 
-Todos los cálculos incluyen recogida y viaje:
+El tiempo usado para ARS/h incluye la recogida, el viaje y una espera estimada para que suba el pasajero. La distancia incluye recogida y viaje:
 
 ```text
-tiempo total = minutos hasta recogida + minutos del viaje
+tiempo total estimado = minutos hasta recogida + minutos del viaje + 1,28 min de espera al recoger
 distancia total = km hasta recogida + km del viaje
 ARS/km = pago / distancia total
-ARS/h = pago × 60 / tiempo total
+ARS/h = pago × 60 / tiempo total estimado
 ```
 
-Con la oferta observada: 26 minutos, 7,0 km, aproximadamente ARS 558/km y ARS 9.007/h.
+Los **1,28 minutos** provienen de la media de espera *después de llegar al punto de recogida* en [un estudio de 416 viajes Uber/Lyft realizados por un investigador en Denver](https://wp-cpr.s3.amazonaws.com/uploads/2019/06/cu-uber-lyft-study.pdf) (mediana: 1 minuto). Es una referencia histórica provisional, **no un promedio argentino ni una medición personal**. No incluye espera entre viajes. Se suma una vez por oferta; no aumenta los kilómetros. [Uber indica que las tarifas por espera, cuando correspondan, se añaden al precio anunciado](https://help.uber.com/driving-and-delivering/article/calculation-of-prices?nodeId=470cd474-831c-4e01-8e5a-3032ca39bab1), por lo que el ingreso final podría diferir. La app explica esta suposición en la tarjeta «Espera al recoger» y enlaza el estudio.
+
+Con la oferta observada: 26 minutos anunciados + 1,28 de espera = 27,28 minutos estimados, 7,0 km, aproximadamente ARS 558/km y ARS 8.584/h. El panel muestra 27,3 min por redondeo, pero calcula con 27,28.
 
 Cada oferta se compara con dos mínimos que deben cumplirse **a la vez**: ARS/h y ARS/km. Los valores iniciales son ARS 15.000/h y ARS 650/km de lunes a miércoles, y ARS 18.000/h y ARS 750/km de jueves a domingo. Se pueden editar en la app. El panel es verde si cumple ambos, ámbar si queda como máximo un 5 % por debajo de alguno (y ninguno cae más lejos), y rojo si alguno queda más de un 5 % por debajo. El ámbar no significa que cumpla el mínimo; solo evita que una diferencia pequeña se vea igual que una oferta muy mala. No muestra etiquetas de clasificación.
 
 La app pregunta cuántas horas sueles trabajar y muestra una estimación bruta de la jornada: objetivo ARS/h × horas habituales. Es una referencia, no una predicción de ingresos reales.
 
-Para un viaje individual, el pago mínimo que cumple ambos objetivos es el mayor entre `objetivo ARS/h × minutos totales / 60` y `mínimo ARS/km × km totales`. Por ejemplo, una oferta de 17 minutos y 4 km que paga ARS 3.604 equivale a ARS 12.720/h y ARS 901/km. Aunque supera los mínimos por kilómetro, necesitaría ARS 4.250 de lunes a miércoles o ARS 5.100 de jueves a domingo para cumplir el objetivo por hora.
+Para un viaje individual, el pago mínimo que cumple ambos objetivos es el mayor entre `objetivo ARS/h × minutos estimados / 60` y `mínimo ARS/km × km totales`. Por ejemplo, una oferta de 17 minutos anunciados y 4 km que paga ARS 3.604 se evalúa con 18,28 minutos: aproximadamente ARS 11.829/h y ARS 901/km. Aunque supera los mínimos por kilómetro, necesitaría ARS 4.570 de lunes a miércoles o ARS 5.484 de jueves a domingo para cumplir el objetivo por hora.
 
-El color es un filtro de la **oferta bruta**, no una garantía de rentabilidad de la jornada. La espera entre viajes, kilómetros sin oferta, combustible, mantenimiento y desgaste del auto reducen el resultado real. La tarjeta de jornada supone que cada minuto de trabajo se factura al objetivo indicado y no descuenta gastos. Los umbrales personales deben calibrarse con ingresos, horas conectadas y kilómetros de odómetro de varias jornadas reales.
+El color es un filtro de la **oferta bruta**, no una garantía de rentabilidad de la jornada. La espera al recoger puede diferir de la media histórica; la espera entre viajes, kilómetros sin oferta, combustible, mantenimiento y desgaste del auto reducen el resultado real. La tarjeta de jornada supone que cada minuto de trabajo se factura al objetivo indicado y no descuenta gastos. Los umbrales personales deben calibrarse con ingresos, horas conectadas y kilómetros de odómetro de varias jornadas reales.
 
 Cada día puede habilitarse y tener horas de inicio y fin. El detector analiza ofertas únicamente dentro de esos horarios. Los turnos que cruzan medianoche conservan el perfil del día de inicio. Inicialmente todos los días están desactivados para que el usuario elija sus horas de trabajo.
 
@@ -77,7 +79,7 @@ Después de instalar:
 2. Configura los dos perfiles, tus horas habituales y activa los días/horarios de trabajo. Guarda.
 3. Pulsa **Abrir Accesibilidad**.
 4. Activa **Analizador de ofertas RideGuard**.
-5. Dentro de tu horario, abre una app de conducción. Cuando aparezca una oferta completa, RideGuard mostrará únicamente ARS/h, ARS/km y los minutos/km totales. El panel desaparece al cerrarse la oferta o, como máximo, tras 18 segundos.
+5. Dentro de tu horario, abre una app de conducción. Cuando aparezca una oferta completa, RideGuard mostrará únicamente ARS/h, ARS/km, tiempo total estimado y kilómetros totales. El panel desaparece al cerrarse la oferta o, como máximo, tras 18 segundos.
 
 El servicio de Accesibilidad permanece habilitado a nivel del sistema; el horario controla el **análisis**, no el permiso. [Android gestiona el ciclo de vida del servicio](https://developer.android.com/reference/android/accessibilityservice/AccessibilityService) después de que lo habilita el usuario. Si el sistema o el fabricante lo desactiva al cerrar la app o reiniciar, vuelve a activarlo desde la tarjeta de estado y revisa las [restricciones de batería](https://developer.android.com/topic/performance/background-optimization) y el autoinicio del teléfono. Una app normal no puede concederse ese permiso por sí misma.
 
