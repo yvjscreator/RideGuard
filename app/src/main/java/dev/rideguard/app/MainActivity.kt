@@ -43,6 +43,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import dev.rideguard.core.model.DriverGoals
+import dev.rideguard.core.model.AvoidedStreet
 import dev.rideguard.core.model.DurationDisplay
 import dev.rideguard.core.model.PickupWaitEstimate
 import dev.rideguard.core.model.WeeklySchedule
@@ -101,6 +102,11 @@ private fun SettingsScreen(
     var busyHourly by remember { mutableStateOf(initial.busyDaysGoals.targetArsPerHour.plain()) }
     var busyKm by remember { mutableStateOf(initial.busyDaysGoals.minimumArsPerKm.plain()) }
     var usualHours by remember { mutableStateOf(initial.usualWorkHours.plain()) }
+    var avoidedZones by remember { mutableStateOf(initial.avoidedZones) }
+    var avoidedStreets by remember { mutableStateOf(initial.avoidedStreets) }
+    var zoneDraft by remember { mutableStateOf("") }
+    var streetDraft by remember { mutableStateOf("") }
+    var streetZoneDraft by remember { mutableStateOf("") }
     var schedule by remember { mutableStateOf(initial.schedule) }
     var savedSchedule by remember { mutableStateOf(initial.schedule) }
     var message by remember { mutableStateOf("") }
@@ -132,6 +138,70 @@ private fun SettingsScreen(
                 onHourlyChange = { regularHourly = it }, onKmChange = { regularKm = it })
             ProfileCard("Jueves a domingo", busyHourly, busyKm,
                 onHourlyChange = { busyHourly = it }, onKmChange = { busyKm = it })
+
+            Text("Destinos a evitar", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text("Una zona o calle de esta lista añade un borde amarillo y un icono de alerta. No cambia el color de rentabilidad ni acepta o rechaza viajes.")
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Zonas", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Barrios o localidades, por ejemplo Palermo o Avellaneda. Solo se alerta si la zona aparece claramente en el destino.",
+                        style = MaterialTheme.typography.bodySmall)
+                    OutlinedTextField(
+                        modifier = Modifier.fillMaxWidth(), value = zoneDraft,
+                        onValueChange = { zoneDraft = it.take(MAX_DESTINATION_RULE_LENGTH) },
+                        label = { Text("Añadir zona a evitar") }, singleLine = true,
+                    )
+                    OutlinedButton(onClick = {
+                        val zone = zoneDraft.trim()
+                        if (zone.isNotEmpty() && avoidedZones.size < MAX_DESTINATION_RULES &&
+                            avoidedZones.none { it.equals(zone, ignoreCase = true) }) {
+                            avoidedZones = avoidedZones + zone
+                            zoneDraft = ""
+                        }
+                    }) { Text("Añadir zona") }
+                    avoidedZones.forEach { zone ->
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(zone, Modifier.weight(1f))
+                            TextButton(onClick = { avoidedZones = avoidedZones - zone }) { Text("Quitar") }
+                        }
+                    }
+                }
+            }
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Calles", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Puedes restringir una calle aunque su zona esté permitida. Deja la zona vacía para alertar en cualquier lugar; si la indicas, solo se alerta cuando la oferta confirma esa zona.",
+                        style = MaterialTheme.typography.bodySmall)
+                    OutlinedTextField(
+                        modifier = Modifier.fillMaxWidth(), value = streetDraft,
+                        onValueChange = { streetDraft = it.take(MAX_DESTINATION_RULE_LENGTH) },
+                        label = { Text("Calle a evitar, p. ej. Avenida Rafael Obligado") }, singleLine = true,
+                    )
+                    OutlinedTextField(
+                        modifier = Modifier.fillMaxWidth(), value = streetZoneDraft,
+                        onValueChange = { streetZoneDraft = it.take(MAX_DESTINATION_RULE_LENGTH) },
+                        label = { Text("Solo en esta zona (opcional), p. ej. Palermo") }, singleLine = true,
+                    )
+                    OutlinedButton(onClick = {
+                        val name = streetDraft.trim()
+                        val zone = streetZoneDraft.trim().ifEmpty { null }
+                        val rule = AvoidedStreet(name, zone)
+                        if (name.isNotEmpty() && avoidedStreets.size < MAX_DESTINATION_RULES &&
+                            avoidedStreets.none { it.name.equals(name, ignoreCase = true) &&
+                                it.onlyInZone.equals(zone, ignoreCase = true) }) {
+                            avoidedStreets = avoidedStreets + rule
+                            streetDraft = ""
+                            streetZoneDraft = ""
+                        }
+                    }) { Text("Añadir calle") }
+                    avoidedStreets.forEach { rule ->
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("${rule.name} · ${rule.onlyInZone ?: "cualquier zona"}", Modifier.weight(1f))
+                            TextButton(onClick = { avoidedStreets = avoidedStreets - rule }) { Text("Quitar") }
+                        }
+                    }
+                }
+            }
 
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -236,6 +306,8 @@ private fun SettingsScreen(
                     busyDaysGoals = DriverGoals(busyHour ?: return@Button, busyDistance ?: return@Button),
                     usualWorkHours = workHours,
                     schedule = schedule,
+                    avoidedZones = avoidedZones,
+                    avoidedStreets = avoidedStreets,
                 )
                 if (onSave(settings)) {
                     schedule = settings.schedule
@@ -345,6 +417,9 @@ private val RideGuardColors: ColorScheme = darkColorScheme(
     primary = Color(0xFF76D17C), secondary = Color(0xFFFFC857),
     background = Color(0xFF101418), surface = Color(0xFF1A2026),
 )
+
+private const val MAX_DESTINATION_RULES = 100
+private const val MAX_DESTINATION_RULE_LENGTH = 80
 
 @Composable
 private fun RideGuardTheme(content: @Composable () -> Unit) {

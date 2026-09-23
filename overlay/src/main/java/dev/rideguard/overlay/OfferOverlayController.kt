@@ -11,7 +11,9 @@ import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
 import android.widget.LinearLayout
+import android.widget.ImageView
 import android.widget.TextView
+import dev.rideguard.core.model.DestinationAlert
 import dev.rideguard.core.model.DurationDisplay
 import dev.rideguard.core.model.OfferEvaluation
 import dev.rideguard.core.model.OfferGrade
@@ -28,7 +30,7 @@ class OfferOverlayController(
 
     fun isShowing(): Boolean = overlay != null
 
-    fun show(evaluation: OfferEvaluation) {
+    fun show(evaluation: OfferEvaluation, destinationAlert: DestinationAlert?) {
         hide()
         val backgroundColor = when (evaluation.grade) {
             OfferGrade.GOOD -> 0xFF2E7D32.toInt()
@@ -42,10 +44,24 @@ class OfferOverlayController(
             background = GradientDrawable().apply {
                 color = android.content.res.ColorStateList.valueOf(backgroundColor)
                 cornerRadius = dp(18).toFloat()
-                setStroke(dp(2), Color.WHITE)
+                setStroke(dp(if (destinationAlert == null) 2 else 4),
+                    if (destinationAlert == null) Color.WHITE else WARNING_YELLOW)
             }
             contentDescription = service.getString(R.string.overlay_close)
-            addView(metricText("${money(evaluation.metrics.arsPerHour)}/h", 28f, Typeface.BOLD))
+            addView(LinearLayout(service).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.END or Gravity.CENTER_VERTICAL
+                if (destinationAlert != null) {
+                    addView(ImageView(service).apply {
+                        setImageResource(R.drawable.ic_destination_warning)
+                        contentDescription = when (destinationAlert.kind) {
+                            DestinationAlert.Kind.ZONE -> "Zona a evitar: ${destinationAlert.matchedName}"
+                            DestinationAlert.Kind.STREET -> "Calle a evitar: ${destinationAlert.matchedName}"
+                        }
+                    }, LinearLayout.LayoutParams(dp(26), dp(26)).apply { marginEnd = dp(8) })
+                }
+                addView(metricText("${money(evaluation.metrics.arsPerHour)}/h", 28f, Typeface.BOLD))
+            })
             addView(metricText("${money(evaluation.metrics.arsPerKm)}/km", 21f, Typeface.BOLD))
             addView(metricText("${DurationDisplay.clock(evaluation.metrics.totalMinutes)} min - ${decimal(evaluation.metrics.totalKm)} km", 14f, Typeface.NORMAL))
         }
@@ -99,5 +115,6 @@ class OfferOverlayController(
 
     private companion object {
         const val DISPLAY_DURATION_MS = 18_000L
+        val WARNING_YELLOW = 0xFFFFD54F.toInt()
     }
 }

@@ -21,6 +21,7 @@ data class RawOffer(
     val tripMinutes: Int,
     val tripKm: Double,
     val sourceText: String,
+    val destination: OfferDestination? = null,
 ) {
     val totalMinutes: Int get() = pickupMinutes + tripMinutes
     val totalKm: Double get() = pickupKm + tripKm

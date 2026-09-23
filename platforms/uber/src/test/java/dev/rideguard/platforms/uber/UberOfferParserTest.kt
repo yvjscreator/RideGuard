@@ -50,4 +50,15 @@ class UberOfferParserTest {
 
         assertEquals(null, offer)
     }
+
+    @Test
+    fun `destination zone and street come after trip not pickup`() {
+        val offer = UberOfferParser().parse(
+            "ARS5,007\nA 4 min (0.9 km)\nPosadas, CABA - Recoleta\n" +
+                "Viaje: 9 min (3.5 km)\nRepública Árabe Siria 3247, CABA - Palermo",
+        )!!
+
+        assertEquals("Palermo", offer.destination?.zone)
+        assertEquals("República Árabe Siria 3247", offer.destination?.street)
+    }
 }

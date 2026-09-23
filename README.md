@@ -36,6 +36,12 @@ Con la oferta observada: 26 minutos anunciados + 1,28 minutos decimales de esper
 
 Cada oferta se compara con dos mínimos que deben cumplirse **a la vez**: ARS/h y ARS/km. Los valores iniciales son ARS 15.000/h y ARS 650/km de lunes a miércoles, y ARS 18.000/h y ARS 750/km de jueves a domingo. Se pueden editar en la app. El panel es verde si cumple ambos, ámbar si queda como máximo un 5 % por debajo de alguno (y ninguno cae más lejos), y rojo si alguno queda más de un 5 % por debajo. El ámbar no significa que cumpla el mínimo; solo evita que una diferencia pequeña se vea igual que una oferta muy mala. No muestra etiquetas de clasificación.
 
+## Destinos a evitar
+
+La configuración tiene **listas separadas** de zonas y calles a evitar, vacías por defecto. Cada calle puede aplicarse en cualquier zona o limitarse a una zona concreta. Una calle restringida dispara la alerta aunque su zona no esté en la lista de zonas restringidas. La tarjeta mantiene el color de rentabilidad y añade un icono triangular y borde amarillo; no acepta ni rechaza la oferta.
+
+El parser lee únicamente la dirección **después del tramo del viaje**, no la recogida ni el texto del mapa de fondo. Reconoce formatos observados como `República Árabe Siria 3247, CABA - Palermo` (Uber) y `Palermo - Calle Silvio L. Ruggieri, 2767` (Cabify). Compara nombres completos sin distinguir mayúsculas ni acentos, no fragmentos: una calle Avellaneda en Palermo no equivale a un destino en la localidad de Avellaneda. Si una calle se limitó a Palermo pero la oferta no indica una zona reconocible, no se dispara esa regla; puedes crearla sin zona si quieres alertar en todos los casos. Si el destino no está en el texto accesible, no habrá alerta. El reconocimiento de direcciones es una ayuda **conservadora**, no una garantía de ubicación o seguridad; no usa geocodificación, GPS ni red.
+
 La app pregunta cuántas horas sueles trabajar y muestra una estimación bruta de la jornada: objetivo ARS/h × horas habituales. Esa tarjeta no utiliza la espera estimada de 1 min 17 s; la espera se añade al tiempo de **cada oferta** antes de calcular el ARS/h del panel. La tarjeta es una referencia, no una predicción de ingresos reales.
 
 Para un viaje individual, el pago mínimo que cumple ambos objetivos es el mayor entre `objetivo ARS/h × minutos estimados / 60` y `mínimo ARS/km × km totales`. Por ejemplo, una oferta de 17 minutos anunciados y 4 km que paga ARS 3.604 se evalúa con 18,28 minutos decimales (se muestran **18:17**): aproximadamente ARS 11.829/h y ARS 901/km. Aunque supera los mínimos por kilómetro, necesitaría ARS 4.570 de lunes a miércoles o ARS 5.484 de jueves a domingo para cumplir el objetivo por hora.
@@ -47,9 +53,9 @@ Cada día puede habilitarse y tener horas de inicio y fin elegidas con el select
 ## Arquitectura
 
 - `app`: interfaz Jetpack Compose y configuración.
-- `core:model`: ofertas, objetivos, métricas y contratos de parsers.
+- `core:model`: ofertas, objetivos, métricas, reglas de destino y contratos de parsers.
 - `core:calculator`: cálculo y clasificación sin dependencias de UI.
-- `core:settings`: persistencia local de objetivos, horas habituales y horarios.
+- `core:settings`: persistencia local de objetivos, horas habituales, horarios y destinos a evitar.
 - `detection:accessibility`: lectura limitada a paquetes de apps de conducción.
 - `detection:ocr`: módulo opcional de reconocimiento con ML Kit desde un `Bitmap` suministrado; no se empaqueta en la app principal.
 - `platforms:uber`, `platforms:cabify`: parsers activos independientes.
@@ -79,10 +85,10 @@ Para compilar y validar también el módulo OCR:
 Después de instalar:
 
 1. Abre RideGuard.
-2. Configura los dos perfiles y tus horas habituales. Activa el lunes, toca sus horas para elegirlas y, si quieres, cópialas a toda la semana. Ajusta o desactiva los demás días y guarda.
+2. Configura los dos perfiles y tus horas habituales. Si quieres, añade zonas y calles a evitar; una calle puede tener zona opcional. Activa el lunes, toca sus horas para elegirlas y, si quieres, cópialas a toda la semana. Ajusta o desactiva los demás días y guarda.
 3. Pulsa **Abrir Accesibilidad**.
 4. Activa **Analizador de ofertas RideGuard**.
-5. Dentro de tu horario, abre una app de conducción. Cuando aparezca una oferta completa, RideGuard mostrará únicamente ARS/h, ARS/km, tiempo total estimado y kilómetros totales. El panel desaparece al cerrarse la oferta o, como máximo, tras 18 segundos.
+5. Dentro de tu horario, abre una app de conducción. Cuando aparezca una oferta completa, RideGuard mostrará ARS/h, ARS/km, tiempo total estimado y kilómetros totales. Si coincide un destino a evitar, añade icono y borde amarillo. El panel desaparece al cerrarse la oferta o, como máximo, tras 18 segundos.
 
 El servicio de Accesibilidad permanece habilitado a nivel del sistema; el horario controla el **análisis**, no el permiso. [Android gestiona el ciclo de vida del servicio](https://developer.android.com/reference/android/accessibilityservice/AccessibilityService) después de que lo habilita el usuario. Si el sistema o el fabricante lo desactiva al cerrar la app o reiniciar, vuelve a activarlo desde la tarjeta de estado y revisa las [restricciones de batería](https://developer.android.com/topic/performance/background-optimization) y el autoinicio del teléfono. Una app normal no puede concederse ese permiso por sí misma.
 

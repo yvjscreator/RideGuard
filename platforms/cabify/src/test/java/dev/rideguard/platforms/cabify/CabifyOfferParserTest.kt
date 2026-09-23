@@ -27,4 +27,25 @@ class CabifyOfferParserTest {
         assertEquals(1.2, offer.pickupKm, 0.001)
         assertEquals(6.4, offer.tripKm, 0.001)
     }
+
+    @Test
+    fun `destination address comes after second leg`() {
+        val offer = CabifyOfferParser().parse(
+            "$ 6.305 en app\n6 min · 1 km\nPalermo - Calle Silvio L. Ruggieri, 2767\n" +
+                "30 min · 8.6 km\nColonia Express - Avenida Elvira Rawson de Dellepiane, 155",
+        )!!
+
+        assertEquals("Avenida Elvira Rawson de Dellepiane, 155", offer.destination?.street)
+    }
+
+    @Test
+    fun `reads cabify zone before street when present`() {
+        val offer = CabifyOfferParser().parse(
+            "$ 4.000 en app\n6 min · 1.1 km\nRecoleta - Calle Posadas, 1000\n" +
+                "14 min · 3.4 km\nPalermo - Av. Rafael Obligado, 1234",
+        )!!
+
+        assertEquals("Palermo", offer.destination?.zone)
+        assertEquals("Av. Rafael Obligado, 1234", offer.destination?.street)
+    }
 }

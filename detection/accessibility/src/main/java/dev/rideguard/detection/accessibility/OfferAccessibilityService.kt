@@ -14,6 +14,7 @@ import android.view.accessibility.AccessibilityEvent
 import androidx.core.content.ContextCompat
 import dev.rideguard.core.calculator.OfferCalculator
 import dev.rideguard.core.model.DriverGoals
+import dev.rideguard.core.model.DestinationAlerts
 import dev.rideguard.core.model.OfferTextFields
 import dev.rideguard.core.model.RawOffer
 import dev.rideguard.core.settings.RideGuardSettings
@@ -146,6 +147,8 @@ class OfferAccessibilityService : AccessibilityService() {
             offer.pickupKm,
             offer.tripMinutes,
             offer.tripKm,
+            offer.destination?.zone,
+            offer.destination?.street,
         ).joinToString("|")
         val now = SystemClock.elapsedRealtime()
         if (signature == lastSignature && now - lastShownAtMs < DUPLICATE_WINDOW_MS) {
@@ -159,7 +162,12 @@ class OfferAccessibilityService : AccessibilityService() {
 
         lastSignature = signature
         lastShownAtMs = now
-        val result = runCatching { overlay.show(evaluation) }
+        val alert = DestinationAlerts.find(
+            offer.destination,
+            currentSettings.avoidedZones,
+            currentSettings.avoidedStreets,
+        )
+        val result = runCatching { overlay.show(evaluation, alert) }
         if (result.isSuccess && windowPackageName != null) startWindowWatch(windowPackageName)
         if (isDebugBuild) {
             if (result.isSuccess) Log.d(LOG_TAG, "shown source=${if (windowPackageName == null) "notification" else "window"}")

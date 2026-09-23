@@ -2,6 +2,7 @@ package dev.rideguard.platforms.uber
 
 import dev.rideguard.core.model.OfferParser
 import dev.rideguard.core.model.OfferTextFields
+import dev.rideguard.core.model.DestinationTextFields
 import dev.rideguard.core.model.LocaleNumbers
 import dev.rideguard.core.model.RawOffer
 import dev.rideguard.core.model.RidePlatform
@@ -29,6 +30,7 @@ class UberOfferParser : OfferParser {
             tripMinutes = trip.minutes,
             tripKm = trip.km,
             sourceText = rawText,
+            destination = DestinationTextFields.afterLabeledTrip(rawText),
         )
     }
 

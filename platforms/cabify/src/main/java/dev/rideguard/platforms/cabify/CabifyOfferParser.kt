@@ -2,6 +2,7 @@ package dev.rideguard.platforms.cabify
 
 import dev.rideguard.core.model.OfferParser
 import dev.rideguard.core.model.OfferTextFields
+import dev.rideguard.core.model.DestinationTextFields
 import dev.rideguard.core.model.RawOffer
 import dev.rideguard.core.model.RidePlatform
 
@@ -31,6 +32,7 @@ class CabifyOfferParser : OfferParser {
             tripMinutes = trip.minutes,
             tripKm = trip.km,
             sourceText = rawText,
+            destination = DestinationTextFields.afterSecondLeg(rawText),
         )
     }
 }

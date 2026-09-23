@@ -1,17 +1,22 @@
 package dev.rideguard.core.settings
 
 import android.content.Context
+import dev.rideguard.core.model.AvoidedStreet
 import dev.rideguard.core.model.DriverGoals
 import dev.rideguard.core.model.WeeklySchedule
 import dev.rideguard.core.model.WorkDaySchedule
 import java.time.DayOfWeek
 import java.time.LocalDateTime
+import org.json.JSONArray
+import org.json.JSONObject
 
 data class RideGuardSettings(
     val regularGoals: DriverGoals = DriverGoals(15_000.0, 650.0),
     val busyDaysGoals: DriverGoals = DriverGoals(18_000.0, 750.0),
     val usualWorkHours: Double = 6.0,
     val schedule: WeeklySchedule = WeeklySchedule(),
+    val avoidedZones: List<String> = emptyList(),
+    val avoidedStreets: List<AvoidedStreet> = emptyList(),
 ) {
     fun goalsFor(at: LocalDateTime): DriverGoals? = when (schedule.activeDay(at)) {
         DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY -> regularGoals
@@ -38,6 +43,8 @@ class RideGuardSettingsStore(context: Context) {
                 preferences.getFloat(BUSY_KM, defaults.busyDaysGoals.minimumArsPerKm.toFloat()).toDouble(),
             ),
             usualWorkHours = preferences.getFloat(USUAL_HOURS, defaults.usualWorkHours.toFloat()).toDouble(),
+            avoidedZones = readZones(preferences.getString(AVOIDED_ZONES, null)),
+            avoidedStreets = readStreets(preferences.getString(AVOIDED_STREETS, null)),
             schedule = WeeklySchedule(
                 DayOfWeek.values().map { day ->
                     val default = defaults.schedule.days.first { it.day == day }
@@ -62,6 +69,12 @@ class RideGuardSettingsStore(context: Context) {
             .putFloat(BUSY_HOURLY, settings.busyDaysGoals.targetArsPerHour.toFloat())
             .putFloat(BUSY_KM, settings.busyDaysGoals.minimumArsPerKm.toFloat())
             .putFloat(USUAL_HOURS, settings.usualWorkHours.toFloat())
+            .putString(AVOIDED_ZONES, JSONArray(settings.avoidedZones).toString())
+            .putString(AVOIDED_STREETS, JSONArray().apply {
+                settings.avoidedStreets.forEach { rule ->
+                    put(JSONObject().put("name", rule.name).put("zone", rule.onlyInZone))
+                }
+            }.toString())
         settings.schedule.days.forEach { day ->
             val key = "day_${day.day.value}_"
             editor.putBoolean(key + "enabled", day.enabled)
@@ -77,5 +90,27 @@ class RideGuardSettingsStore(context: Context) {
         const val BUSY_HOURLY = "busy_hourly"
         const val BUSY_KM = "busy_km"
         const val USUAL_HOURS = "usual_hours"
+        const val AVOIDED_ZONES = "avoided_zones"
+        const val AVOIDED_STREETS = "avoided_streets"
+        const val MAX_RULES = 100
+        const val MAX_RULE_LENGTH = 80
     }
+
+    private fun readZones(raw: String?): List<String> = runCatching {
+        val array = JSONArray(raw ?: "[]")
+        (0 until minOf(array.length(), MAX_RULES)).mapNotNull { index ->
+            array.optString(index).trim().take(MAX_RULE_LENGTH).takeIf(String::isNotEmpty)
+        }
+    }.getOrDefault(emptyList())
+
+    private fun readStreets(raw: String?): List<AvoidedStreet> = runCatching {
+        val array = JSONArray(raw ?: "[]")
+        (0 until minOf(array.length(), MAX_RULES)).mapNotNull { index ->
+            val item = array.optJSONObject(index) ?: return@mapNotNull null
+            val name = item.optString("name").trim().take(MAX_RULE_LENGTH)
+            if (name.isEmpty()) return@mapNotNull null
+            AvoidedStreet(name, item.optString("zone").trim().take(MAX_RULE_LENGTH).ifEmpty { null })
+        }
+    }.getOrDefault(emptyList())
+
 }
