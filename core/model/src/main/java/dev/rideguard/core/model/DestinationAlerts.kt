@@ -50,6 +50,7 @@ object DestinationAlerts {
 
     private fun streetKey(value: String?): String = key(value)
         .replace(Regex("^av(?:da)? "), "avenida ")
+        .removePrefix("calle ")
 
     private fun key(value: String?): String {
         if (value.isNullOrBlank()) return ""

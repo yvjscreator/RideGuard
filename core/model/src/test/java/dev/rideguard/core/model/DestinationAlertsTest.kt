@@ -43,6 +43,16 @@ class DestinationAlertsTest {
     }
 
     @Test
+    fun `optional calle prefix does not hide a configured street`() {
+        val alert = DestinationAlerts.find(
+            OfferDestination("Palermo", "Calle Juan Pedro de Jujuy, 1234"),
+            emptyList(),
+            listOf(AvoidedStreet("Juan Pedro de Jujuy", "Palermo")),
+        )
+        assertEquals(DestinationAlert.Kind.STREET, alert?.kind)
+    }
+
+    @Test
     fun `matching uses complete normalized names rather than substrings`() {
         assertNull(DestinationAlerts.find(
             OfferDestination("Palermo Chico", "Avenida Rafael Obligado Bis 123"),
