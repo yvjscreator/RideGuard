@@ -12,6 +12,7 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.LinearLayout
 import android.widget.TextView
+import dev.rideguard.core.model.DurationDisplay
 import dev.rideguard.core.model.OfferEvaluation
 import dev.rideguard.core.model.OfferGrade
 import java.text.NumberFormat
@@ -44,7 +45,7 @@ class OfferOverlayController(
             contentDescription = service.getString(R.string.overlay_close)
             addView(metricText("${money(evaluation.metrics.arsPerHour)}/h", 28f, Typeface.BOLD))
             addView(metricText("${money(evaluation.metrics.arsPerKm)}/km", 21f, Typeface.BOLD))
-            addView(metricText("${decimal(evaluation.metrics.totalMinutes)} min - ${decimal(evaluation.metrics.totalKm)} km", 14f, Typeface.NORMAL))
+            addView(metricText("${DurationDisplay.clock(evaluation.metrics.totalMinutes)} min - ${decimal(evaluation.metrics.totalKm)} km", 14f, Typeface.NORMAL))
         }
 
         val params = WindowManager.LayoutParams(

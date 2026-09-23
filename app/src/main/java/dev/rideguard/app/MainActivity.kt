@@ -43,6 +43,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import dev.rideguard.core.model.DriverGoals
+import dev.rideguard.core.model.DurationDisplay
 import dev.rideguard.core.model.PickupWaitEstimate
 import dev.rideguard.core.model.WeeklySchedule
 import dev.rideguard.core.settings.RideGuardSettings
@@ -111,7 +112,8 @@ private fun SettingsScreen(
     val activeNow = savedSchedule.activeDay(today) != null
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
-    val estimatedWait = String.format(Locale.forLanguageTag("es-AR"), "%.2f", PickupWaitEstimate.MINUTES)
+    val waitSeconds = DurationDisplay.roundedSeconds(PickupWaitEstimate.MINUTES)
+    val estimatedWait = "${waitSeconds / 60} min ${waitSeconds % 60} s"
 
     Scaffold { padding ->
         Column(
@@ -134,7 +136,7 @@ private fun SettingsScreen(
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Espera al recoger", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text("Sumamos $estimatedWait min estimados desde que llegas hasta que el pasajero sube. El tiempo del panel, los ARS/h y el color incluyen esa espera; los ARS/km no cambian.")
+                    Text("Sumamos $estimatedWait estimados desde que llegas hasta que el pasajero sube. El tiempo del panel se muestra como min:seg; los ARS/h y el color incluyen esa espera, pero los ARS/km no cambian.")
                     Text("Es una media histórica de 416 viajes Uber/Lyft en Denver, no una medición argentina ni de tus viajes. No incluye esperas entre ofertas; un posible pago por espera puede cambiar el ingreso final.",
                         style = MaterialTheme.typography.bodySmall)
                     TextButton(onClick = { uriHandler.openUri(PickupWaitEstimate.STUDY_URL) }) {
@@ -150,7 +152,7 @@ private fun SettingsScreen(
                     Text("Ganancias estimadas en jornada de ${hours?.plain() ?: "—"} horas")
                     Text("Lun–Mié: ${regularEstimate?.money() ?: "—"}")
                     Text("Jue–Dom: ${busyEstimate?.money() ?: "—"}")
-                    Text("Referencia bruta: objetivo por hora × horas habituales. Supone actividad continua, sin esperas entre viajes ni gastos del auto.",
+                    Text("Referencia bruta: objetivo por hora × horas habituales. La espera de $estimatedWait se aplica a cada oferta, no a esta proyección. Esta tarjeta supone actividad continua y no descuenta gastos del auto.",
                         style = MaterialTheme.typography.bodySmall)
                 }
             }
