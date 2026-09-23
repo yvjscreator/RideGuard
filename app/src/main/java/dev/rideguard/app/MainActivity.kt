@@ -244,6 +244,8 @@ private fun SettingsScreen(
                 } else message = "No se pudo guardar. Inténtalo de nuevo."
             }) { Text("Guardar configuración") }
             if (message.isNotEmpty()) Text(message, color = MaterialTheme.colorScheme.primary)
+            Text("Con otra app abierta, RideGuard puede analizar una oferta si Uber o Cabify muestran pago, minutos y kilómetros en una ventana visible o notificación completa. Un aviso sin esos datos no basta.",
+                style = MaterialTheme.typography.bodySmall)
             Text("Privacidad: el análisis ocurre en el teléfono. Nunca se aceptan ni rechazan viajes automáticamente.",
                 style = MaterialTheme.typography.bodySmall)
         }

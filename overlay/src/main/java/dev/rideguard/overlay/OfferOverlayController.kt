@@ -26,6 +26,8 @@ class OfferOverlayController(
     private var overlay: View? = null
     private var hideGeneration = 0
 
+    fun isShowing(): Boolean = overlay != null
+
     fun show(evaluation: OfferEvaluation) {
         hide()
         val backgroundColor = when (evaluation.grade) {

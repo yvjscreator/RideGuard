@@ -1,6 +1,6 @@
 # RideGuard
 
-RideGuard es una aplicación Android de código abierto que calcula la rentabilidad de ofertas visibles en Uber Driver, Cabify Driver y DiDi Driver. El análisis ocurre en el teléfono. La aplicación no acepta ni rechaza viajes y no simula toques.
+RideGuard es una aplicación Android de código abierto que calcula la rentabilidad de ofertas visibles en Uber Driver y Cabify Driver. El análisis ocurre en el teléfono. La aplicación no acepta ni rechaza viajes y no simula toques.
 
 ## Estado del prototipo
 
@@ -13,9 +13,11 @@ A 6 min (1.4 km)
 Viaje: 20 min (5.6 km)
 ```
 
-Esto confirma que, en esa versión de Uber Driver, pago, tiempo y distancia pueden leerse sin OCR. RideGuard usa accesibilidad como fuente principal y mantiene ML Kit OCR como módulo opcional para pantallas o versiones que no expongan texto. El APK principal no incluye ni carga el modelo OCR.
+Esto confirma que, en esa versión de Uber Driver, pago, tiempo y distancia pueden leerse sin OCR **cuando la oferta de Uber está visible**. RideGuard usa accesibilidad como fuente principal y mantiene ML Kit OCR como módulo opcional para pantallas o versiones que no expongan texto. El APK principal no incluye ni carga el modelo OCR.
 
-Los parsers de Cabify y DiDi incluyen formatos iniciales y tests sintéticos. Deben validarse con ofertas reales de cada plataforma antes de considerarlos estables.
+Cuando otra app está delante, Android no permite leer una pantalla oculta de Uber o Cabify. RideGuard analiza sus **ventanas de oferta visibles** sobre otra app y, cuando la plataforma la emite, el texto de una notificación completa. Las ofertas flotantes de Uber y Cabify se comprobaron en el Xiaomi de prueba tanto dentro como fuera de las apps; alguna oferta de Cabify no produjo tarjeta durante las pruebas, por lo que la cobertura aún no es perfecta. Solo muestra métricas si encuentra **pago, minutos y kilómetros tanto de recogida como de viaje**. Un aviso que solo invita a abrir la app no basta. El comportamiento puede variar según versión, teléfono y plataforma.
+
+DiDi queda pendiente: en las ofertas reales observadas en este teléfono, su ventana no expuso texto a Accesibilidad. Su parser experimental permanece en el repositorio como referencia, pero el servicio no escucha DiDi, el APK no incluye su módulo y no se activa OCR ni captura de pantalla.
 
 ## Cálculo
 
@@ -50,7 +52,8 @@ Cada día puede habilitarse y tener horas de inicio y fin elegidas con el select
 - `core:settings`: persistencia local de objetivos, horas habituales y horarios.
 - `detection:accessibility`: lectura limitada a paquetes de apps de conducción.
 - `detection:ocr`: módulo opcional de reconocimiento con ML Kit desde un `Bitmap` suministrado; no se empaqueta en la app principal.
-- `platforms:uber`, `platforms:cabify`, `platforms:didi`: parsers independientes.
+- `platforms:uber`, `platforms:cabify`: parsers activos independientes.
+- `platforms:didi`: prototipo no incluido en el APK.
 - `overlay`: panel flotante no interactivo mediante `TYPE_ACCESSIBILITY_OVERLAY`.
 
 ## Compilar
@@ -85,7 +88,7 @@ El servicio de Accesibilidad permanece habilitado a nivel del sistema; el horari
 
 ## Privacidad y seguridad
 
-- El servicio declara únicamente los paquetes conocidos de Uber Driver, Cabify Driver y DiDi Driver.
+- El servicio declara únicamente los paquetes conocidos de Uber Driver y Cabify Driver; también puede leer eventos de notificación emitidos por esas apps.
 - No se envían capturas, textos ni métricas a servidores.
 - El overlay no recibe toques, para evitar interferir con la app de conducción.
 - El servicio no declara capacidad para ejecutar gestos.
@@ -94,7 +97,7 @@ El servicio de Accesibilidad permanece habilitado a nivel del sistema; el horari
 
 ## Consumo de recursos
 
-El detector funciona por eventos; no hace polling. Limita cada lectura a 350 nodos, 16.000 caracteres y espera al menos 750 ms entre escaneos. Libera nodos de accesibilidad en versiones antiguas de Android. El servicio corre en el proceso separado `:detector`, por lo que Android puede liberar la interfaz Compose mientras conduces. El overlay usa vistas Android pequeñas y desaparece automáticamente. ML Kit no forma parte del APK principal. La compilación `release` activa reducción y optimización de código y recursos.
+El detector funciona por eventos mientras no hay oferta. Limita cada lectura a 350 nodos, 16.000 caracteres y espera al menos 750 ms entre escaneos. Solo mientras se muestra una tarjeta comprueba cada 1,5 segundos si la ventana de oferta sigue visible, para ocultarla poco después de que se cierre; la tarjeta dura como máximo 18 segundos. Libera nodos de accesibilidad en versiones antiguas de Android. El servicio corre en el proceso separado `:detector`, por lo que Android puede liberar la interfaz Compose mientras conduces. El overlay usa vistas Android pequeñas. ML Kit no forma parte del APK principal. La compilación `release` activa reducción y optimización de código y recursos.
 
 Android reserva los servicios de accesibilidad para funciones que ayudan a usuarios con discapacidades. Una distribución pública debe revisar las políticas vigentes de Google Play y explicar claramente el propósito del servicio. Instalación directa o tiendas alternativas pueden tener requisitos distintos.
 

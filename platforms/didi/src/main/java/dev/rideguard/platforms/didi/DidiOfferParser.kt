@@ -11,11 +11,18 @@ class DidiOfferParser : OfferParser {
 
     override fun parse(rawText: String): RawOffer? {
         val fare = OfferTextFields.fareArs(rawText) ?: return null
-        val pickup = OfferTextFields.leg(
+        val labeledPickup = OfferTextFields.leg(
             rawText,
             listOf("Recoger", "Recogida", "Hasta el pasajero"),
-        ) ?: return null
-        val trip = OfferTextFields.leg(rawText, listOf("Viaje", "Destino", "Recorrido")) ?: return null
+        )
+        val labeledTrip = OfferTextFields.leg(rawText, listOf("Viaje", "Destino", "Recorrido"))
+        val (pickup, trip) = if (labeledPickup != null && labeledTrip != null) {
+            labeledPickup to labeledTrip
+        } else {
+            val legs = OfferTextFields.legsInOrder(rawText)
+            if (legs.size != 2) return null
+            legs[0] to legs[1]
+        }
         return RawOffer(
             platform = platform,
             fareArs = fare,

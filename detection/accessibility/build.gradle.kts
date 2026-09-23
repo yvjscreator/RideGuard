@@ -17,6 +17,6 @@ dependencies {
     implementation(project(":core:settings"))
     implementation(project(":platforms:uber"))
     implementation(project(":platforms:cabify"))
-    implementation(project(":platforms:didi"))
     implementation(project(":overlay"))
+    testImplementation(libs.junit)
 }

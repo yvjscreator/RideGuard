@@ -25,6 +25,19 @@ class UberOfferParserTest {
     }
 
     @Test
+    fun `parses a long offer shown over another app`() {
+        val offer = UberOfferParser().parse(
+            "ARS22,795\nARS465/km (estimado)\nA 1 min (0.2 km)\nViaje: 1 h 29 min (48.8 km)",
+        )
+
+        assertNotNull(offer)
+        assertEquals(22_795.0, offer!!.fareArs, 0.001)
+        assertEquals(1, offer.pickupMinutes)
+        assertEquals(89, offer.tripMinutes)
+        assertEquals(49.0, offer.pickupKm + offer.tripKm, 0.001)
+    }
+
+    @Test
     fun `ignores incomplete screens`() {
         assertEquals(null, UberOfferParser().parse("Buscando solicitud de viaje\nARS 0.00"))
     }
