@@ -7,6 +7,8 @@ import java.util.Locale
 data class OfferDestination(
     val zone: String? = null,
     val street: String? = null,
+    /** True only when the address explicitly labels the destination's zone. */
+    val zoneConfirmed: Boolean = false,
 )
 
 data class AvoidedStreet(
@@ -23,6 +25,11 @@ data class DestinationAlert(
 }
 
 object DestinationAlerts {
+    fun isZoneAvoided(zone: String, avoidedZones: List<String>): Boolean {
+        val normalized = key(zone)
+        return normalized.isNotEmpty() && avoidedZones.any { key(it) == normalized }
+    }
+
     fun find(
         destination: OfferDestination?,
         avoidedZones: List<String>,

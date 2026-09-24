@@ -23,7 +23,7 @@ object DestinationTextFields {
         if (address.isBlank() || OfferTextFields.legsInOrder(address).isNotEmpty()) return null
 
         CABA_SUFFIX.matchEntire(address)?.let { match ->
-            return OfferDestination(zone = match.groupValues[2].trim(), street = match.groupValues[1].trim())
+            return OfferDestination(zone = match.groupValues[2].trim(), street = match.groupValues[1].trim(), zoneConfirmed = true)
         }
 
         val parts = address.split(SPACED_DASH, limit = 2).map(String::trim)

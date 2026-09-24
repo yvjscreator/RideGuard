@@ -25,7 +25,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Switch
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.darkColorScheme
@@ -33,6 +35,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.key
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -44,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import dev.rideguard.core.model.DriverGoals
 import dev.rideguard.core.model.AvoidedStreet
+import dev.rideguard.core.model.DestinationAlerts
 import dev.rideguard.core.model.DurationDisplay
 import dev.rideguard.core.model.PickupWaitEstimate
 import dev.rideguard.core.model.WeeklySchedule
@@ -58,15 +62,18 @@ import kotlin.math.round
 
 class MainActivity : ComponentActivity() {
     private lateinit var settingsStore: RideGuardSettingsStore
+    private var currentSettings by mutableStateOf(RideGuardSettings())
     private var accessibilityEnabled by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         settingsStore = RideGuardSettingsStore(this)
+        currentSettings = settingsStore.load()
         setContent {
             RideGuardTheme {
+                key(currentSettings) {
                 SettingsScreen(
-                    initial = settingsStore.load(),
+                    initial = currentSettings,
                     accessibilityEnabled = accessibilityEnabled,
                     onOpenAccessibility = { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) },
                     onOpenAppInfo = {
@@ -79,6 +86,7 @@ class MainActivity : ComponentActivity() {
                         saved
                     },
                 )
+                }
             }
         }
     }
@@ -86,6 +94,8 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         accessibilityEnabled = isAccessibilityServiceEnabled(this)
+        val latest = settingsStore.load()
+        if (latest != currentSettings) currentSettings = latest
     }
 }
 
@@ -110,6 +120,7 @@ private fun SettingsScreen(
     var schedule by remember { mutableStateOf(initial.schedule) }
     var savedSchedule by remember { mutableStateOf(initial.schedule) }
     var message by remember { mutableStateOf("") }
+    var selectedTab by remember { mutableStateOf(0) }
 
     val hours = usualHours.numberOrNull()?.takeIf { it > 0.0 && it <= 24.0 }
     val regularEstimate = regularHourly.numberOrNull()?.let { hourly -> hours?.let { hourly * it } }
@@ -121,15 +132,61 @@ private fun SettingsScreen(
     val waitSeconds = DurationDisplay.roundedSeconds(PickupWaitEstimate.MINUTES)
     val estimatedWait = "${waitSeconds / 60} min ${waitSeconds % 60} s"
 
-    Scaffold { padding ->
-        Column(
-            modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+    val saveSettings: () -> Unit = save@{
+        val regularHour = regularHourly.numberOrNull()
+        val regularDistance = regularKm.numberOrNull()
+        val busyHour = busyHourly.numberOrNull()
+        val busyDistance = busyKm.numberOrNull()
+        val workHours = usualHours.numberOrNull()
+        if (listOf(regularHour, regularDistance, busyHour, busyDistance).any { it == null || it <= 0.0 } ||
+            workHours == null || workHours <= 0.0 || workHours > 24.0
         ) {
-            Text("RideGuard", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+            message = "Completa metas positivas y una jornada de hasta 24 horas."
+            return@save
+        } else {
+            val settings = RideGuardSettings(
+                regularGoals = DriverGoals(regularHour ?: return@save, regularDistance ?: return@save),
+                busyDaysGoals = DriverGoals(busyHour ?: return@save, busyDistance ?: return@save),
+                usualWorkHours = workHours,
+                schedule = schedule,
+                avoidedZones = avoidedZones,
+                avoidedStreets = avoidedStreets,
+            )
+            if (onSave(settings)) {
+                savedSchedule = settings.schedule
+                message = "Configuración guardada"
+            } else message = "No se pudo guardar. Inténtalo de nuevo."
+        }
+    }
+
+    Scaffold(bottomBar = {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
+            Button(modifier = Modifier.fillMaxWidth(), onClick = saveSettings) { Text("Guardar cambios") }
+            if (message.isNotEmpty()) Text(message, color = MaterialTheme.colorScheme.primary)
+        }
+    }) { padding ->
+        Column(Modifier.fillMaxSize().padding(padding)) {
+            Text("RideGuard", modifier = Modifier.padding(start = 20.dp, top = 12.dp, bottom = 8.dp),
+                style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+            val tabs = listOf("Resumen", "Objetivos", "Destinos", "Horarios")
+            ScrollableTabRow(selectedTabIndex = selectedTab, edgePadding = 12.dp) {
+                tabs.forEachIndexed { index, title ->
+                    Tab(selected = selectedTab == index, onClick = { selectedTab = index }, text = { Text(title) })
+                }
+            }
+            key(selectedTab) {
+            Column(
+                modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+            if (selectedTab == 0) {
             Text("Ofertas claras mientras trabajas.")
             ServiceCard(accessibilityEnabled, activeNow, onOpenAccessibility, onOpenAppInfo)
+            Text("Toca «Evitar zona» solo con el auto detenido. La acción guarda el barrio indicado, nunca la calle; puedes quitarlo en Destinos.",
+                style = MaterialTheme.typography.bodySmall)
+            }
 
+            if (selectedTab == 1) {
             Text("Objetivos por día", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text("Una oferta cumple solo si alcanza el mínimo por hora y por kilómetro. La recogida y la espera estimada están incluidas.")
             Text("Verde: cumple ambos. Ámbar: queda hasta 5 % por debajo. Rojo: alguno queda más lejos.",
@@ -138,7 +195,9 @@ private fun SettingsScreen(
                 onHourlyChange = { regularHourly = it }, onKmChange = { regularKm = it })
             ProfileCard("Jueves a domingo", busyHourly, busyKm,
                 onHourlyChange = { busyHourly = it }, onKmChange = { busyKm = it })
+            }
 
+            if (selectedTab == 2) {
             Text("Destinos a evitar", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text("Una zona o calle de esta lista añade un borde amarillo y un icono de alerta. No cambia el color de rentabilidad ni acepta o rechaza viajes.")
             Card(Modifier.fillMaxWidth()) {
@@ -154,7 +213,7 @@ private fun SettingsScreen(
                     OutlinedButton(onClick = {
                         val zone = zoneDraft.trim()
                         if (zone.isNotEmpty() && avoidedZones.size < MAX_DESTINATION_RULES &&
-                            avoidedZones.none { it.equals(zone, ignoreCase = true) }) {
+                            !DestinationAlerts.isZoneAvoided(zone, avoidedZones)) {
                             avoidedZones = avoidedZones + zone
                             zoneDraft = ""
                         }
@@ -202,7 +261,9 @@ private fun SettingsScreen(
                     }
                 }
             }
+            }
 
+            if (selectedTab == 1) {
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Espera al recoger", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -214,7 +275,9 @@ private fun SettingsScreen(
                     }
                 }
             }
+            }
 
+            if (selectedTab == 0) {
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Jornada habitual", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -226,7 +289,9 @@ private fun SettingsScreen(
                         style = MaterialTheme.typography.bodySmall)
                 }
             }
+            }
 
+            if (selectedTab == 3) {
             Text("Horarios de trabajo", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text("Activa el lunes y toca las horas para elegirlas. Puedes copiar ese horario a toda la semana y luego editar o desactivar cualquier día. Un horario como 22:00 a 02:00 cruza medianoche; fuera del horario RideGuard no analiza ofertas.")
             schedule.days.forEachIndexed { index, day ->
@@ -288,38 +353,15 @@ private fun SettingsScreen(
             if (schedule.days.none { it.enabled }) {
                 Text("Activa al menos un día para que aparezca el análisis de ofertas.", color = MaterialTheme.colorScheme.secondary)
             }
-
-            Button(modifier = Modifier.fillMaxWidth(), onClick = {
-                val regularHour = regularHourly.numberOrNull()
-                val regularDistance = regularKm.numberOrNull()
-                val busyHour = busyHourly.numberOrNull()
-                val busyDistance = busyKm.numberOrNull()
-                val workHours = usualHours.numberOrNull()
-                if (listOf(regularHour, regularDistance, busyHour, busyDistance).any { it == null || it <= 0.0 } ||
-                    workHours == null || workHours <= 0.0 || workHours > 24.0
-                ) {
-                    message = "Completa metas positivas y una jornada de hasta 24 horas."
-                    return@Button
-                }
-                val settings = RideGuardSettings(
-                    regularGoals = DriverGoals(regularHour ?: return@Button, regularDistance ?: return@Button),
-                    busyDaysGoals = DriverGoals(busyHour ?: return@Button, busyDistance ?: return@Button),
-                    usualWorkHours = workHours,
-                    schedule = schedule,
-                    avoidedZones = avoidedZones,
-                    avoidedStreets = avoidedStreets,
-                )
-                if (onSave(settings)) {
-                    schedule = settings.schedule
-                    savedSchedule = settings.schedule
-                    message = "Configuración guardada"
-                } else message = "No se pudo guardar. Inténtalo de nuevo."
-            }) { Text("Guardar configuración") }
-            if (message.isNotEmpty()) Text(message, color = MaterialTheme.colorScheme.primary)
+            }
+            if (selectedTab == 0) {
             Text("Con otra app abierta, RideGuard puede analizar una oferta si Uber o Cabify muestran pago, minutos y kilómetros en una ventana visible o notificación completa. Un aviso sin esos datos no basta.",
                 style = MaterialTheme.typography.bodySmall)
             Text("Privacidad: el análisis ocurre en el teléfono. Nunca se aceptan ni rechazan viajes automáticamente.",
                 style = MaterialTheme.typography.bodySmall)
+            }
+            }
+            }
         }
     }
 }

@@ -40,6 +40,13 @@ class OfferAccessibilityService : AccessibilityService() {
     private var missingWindowChecks = 0
     private val settingsReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == QuickAvoidZoneBroadcast.RESULT_ACTION) {
+                overlay.resolveQuickAdd(
+                    intent.getStringExtra(QuickAvoidZoneBroadcast.ZONE_EXTRA).orEmpty(),
+                    intent.getBooleanExtra(QuickAvoidZoneBroadcast.SAVED_EXTRA, false),
+                )
+                return
+            }
             intent?.let(DetectorSettingsBroadcast::read)?.let {
                 currentSettings = it
                 lastSignature = null
@@ -56,7 +63,10 @@ class OfferAccessibilityService : AccessibilityService() {
             ContextCompat.registerReceiver(
                 this,
                 settingsReceiver,
-                IntentFilter(DetectorSettingsBroadcast.ACTION),
+                IntentFilter().apply {
+                    addAction(DetectorSettingsBroadcast.ACTION)
+                    addAction(QuickAvoidZoneBroadcast.RESULT_ACTION)
+                },
                 ContextCompat.RECEIVER_NOT_EXPORTED,
             )
             receiverRegistered = true
@@ -167,7 +177,13 @@ class OfferAccessibilityService : AccessibilityService() {
             currentSettings.avoidedZones,
             currentSettings.avoidedStreets,
         )
-        val result = runCatching { overlay.show(evaluation, alert) }
+        val quickZone = offer.destination?.takeIf { it.zoneConfirmed }?.zone
+            ?.takeIf { !DestinationAlerts.isZoneAvoided(it, currentSettings.avoidedZones) }
+        val result = runCatching {
+            overlay.show(evaluation, alert, quickZone) { zone ->
+                sendBroadcast(QuickAvoidZoneBroadcast.request(this, zone))
+            }
+        }
         if (result.isSuccess && windowPackageName != null) startWindowWatch(windowPackageName)
         if (isDebugBuild) {
             if (result.isSuccess) Log.d(LOG_TAG, "shown source=${if (windowPackageName == null) "notification" else "window"}")

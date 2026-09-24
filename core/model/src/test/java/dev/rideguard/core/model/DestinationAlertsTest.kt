@@ -2,9 +2,26 @@ package dev.rideguard.core.model
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class DestinationAlertsTest {
+    @Test
+    fun `quick add only uses an explicitly labeled destination zone`() {
+        val uber = DestinationTextFields.parseAddress("Suipacha 948, CABA - Retiro")
+        val ambiguous = DestinationTextFields.parseAddress("Colonia Express - Avenida Ramón Castillo 13")
+        assertEquals("Retiro", uber?.zone)
+        assertTrue(uber?.zoneConfirmed == true)
+        assertFalse(ambiguous?.zoneConfirmed == true)
+    }
+
+    @Test
+    fun `avoided zone lookup ignores accents but not partial names`() {
+        assertTrue(DestinationAlerts.isZoneAvoided("Lanús", listOf("Lanus")))
+        assertFalse(DestinationAlerts.isZoneAvoided("Palermo Chico", listOf("Palermo")))
+    }
+
     @Test
     fun `street warning wins even when the zone is allowed`() {
         val destination = OfferDestination("Palermo", "Av. Rafael Obligado 1234")

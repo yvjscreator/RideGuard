@@ -2,6 +2,7 @@ package dev.rideguard.core.settings
 
 import android.content.Context
 import dev.rideguard.core.model.AvoidedStreet
+import dev.rideguard.core.model.DestinationAlerts
 import dev.rideguard.core.model.DriverGoals
 import dev.rideguard.core.model.WeeklySchedule
 import dev.rideguard.core.model.WorkDaySchedule
@@ -82,6 +83,18 @@ class RideGuardSettingsStore(context: Context) {
             editor.putInt(key + "end", day.endMinute)
         }
         return editor.commit()
+    }
+
+    /** Called only in the app process; preserves every other saved preference. */
+    @Synchronized
+    fun addAvoidedZone(rawZone: String): RideGuardSettings? {
+        val zone = rawZone.trim()
+        if (zone.isEmpty() || zone.length > MAX_RULE_LENGTH || zone.contains('\n')) return null
+        val current = load()
+        if (DestinationAlerts.isZoneAvoided(zone, current.avoidedZones)) return current
+        if (current.avoidedZones.size >= MAX_RULES) return null
+        val updated = current.copy(avoidedZones = current.avoidedZones + zone)
+        return updated.takeIf(::save)
     }
 
     private companion object {
