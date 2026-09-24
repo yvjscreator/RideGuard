@@ -20,7 +20,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -30,7 +29,6 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,7 +36,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.key
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
@@ -159,7 +156,7 @@ private fun SettingsScreen(
         }
     }
 
-    Scaffold(bottomBar = {
+    Scaffold(containerColor = MaterialTheme.colorScheme.background, bottomBar = {
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
             Button(modifier = Modifier.fillMaxWidth(), onClick = saveSettings) { Text("Guardar cambios") }
             if (message.isNotEmpty()) Text(message, color = MaterialTheme.colorScheme.primary)
@@ -389,7 +386,7 @@ private fun ServiceCard(enabled: Boolean, activeNow: Boolean,
                 else -> "Permiso activo · fuera de horario"
             }
             Text(status, fontWeight = FontWeight.Bold,
-                color = if (enabled) Color(0xFF76D17C) else Color(0xFFFF8A80))
+                color = if (enabled) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error)
             Text("Android mantiene el permiso de Accesibilidad. Si el teléfono lo desactiva al reiniciar, vuelve a habilitarlo aquí y revisa las restricciones de batería de RideGuard.")
             OutlinedButton(onClick = onOpenAccessibility) { Text("Abrir Accesibilidad") }
             OutlinedButton(onClick = onOpenAppInfo) { Text("Abrir ajustes de RideGuard") }
@@ -455,15 +452,5 @@ private fun isAccessibilityServiceEnabled(context: Context): Boolean {
         }
 }
 
-private val RideGuardColors: ColorScheme = darkColorScheme(
-    primary = Color(0xFF76D17C), secondary = Color(0xFFFFC857),
-    background = Color(0xFF101418), surface = Color(0xFF1A2026),
-)
-
 private const val MAX_DESTINATION_RULES = 100
 private const val MAX_DESTINATION_RULE_LENGTH = 80
-
-@Composable
-private fun RideGuardTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = RideGuardColors, content = content)
-}

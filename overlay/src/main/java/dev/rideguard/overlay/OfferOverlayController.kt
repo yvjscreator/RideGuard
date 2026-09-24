@@ -97,9 +97,9 @@ class OfferOverlayController(
                 maxWidth = service.resources.displayMetrics.widthPixels - dp(32)
                 maxLines = 2
                 ellipsize = TextUtils.TruncateAt.END
-                setTextColor(Color.BLACK)
+                setTextColor(BRAND_INK)
                 background = GradientDrawable().apply {
-                    setColor(WARNING_YELLOW)
+                    setColor(BRAND_AQUA)
                     cornerRadius = dp(14).toFloat()
                 }
                 setOnClickListener {
@@ -174,5 +174,7 @@ class OfferOverlayController(
     private companion object {
         const val DISPLAY_DURATION_MS = 18_000L
         val WARNING_YELLOW = 0xFFFFD54F.toInt()
+        val BRAND_AQUA = 0xFF5FE7E8.toInt()
+        val BRAND_INK = 0xFF00363E.toInt()
     }
 }

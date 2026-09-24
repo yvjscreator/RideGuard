@@ -2,6 +2,8 @@
 
 RideGuard es una aplicación Android de código abierto que calcula la rentabilidad de ofertas visibles en Uber Driver y Cabify Driver. El análisis ocurre en el teléfono. La aplicación no acepta ni rechaza viajes y no simula toques.
 
+La interfaz toma su paleta del ícono: fondo azul marino, superficies azul profundo y controles celestes/turquesa. Los indicadores de rentabilidad conservan verde, ámbar y rojo para que su significado no cambie con el tema.
+
 ## Estado del prototipo
 
 La detección de Uber fue validada en un Xiaomi M2012K11AG mediante ADB y `uiautomator`. Una oferta real expuso estos textos en el árbol de accesibilidad:

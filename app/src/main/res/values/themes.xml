@@ -2,9 +2,10 @@
 <resources>
     <style name="Theme.RideGuard" parent="android:style/Theme.Material.NoActionBar">
         <item name="android:fontFamily">sans</item>
-        <item name="android:colorAccent">#4CAF50</item>
-        <item name="android:navigationBarColor">#101418</item>
-        <item name="android:statusBarColor">#101418</item>
+        <item name="android:colorAccent">#5FE7E8</item>
+        <item name="android:windowBackground">#091A30</item>
+        <item name="android:navigationBarColor">#091A30</item>
+        <item name="android:statusBarColor">#091A30</item>
         <item name="android:windowLightStatusBar">false</item>
     </style>
 </resources>
