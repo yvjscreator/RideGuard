@@ -13,14 +13,18 @@ class UberOfferParser : OfferParser {
     override val packageNames = setOf("com.ubercab.driver")
 
     override fun parse(rawText: String): RawOffer? {
-        val fare = OfferTextFields.fareArs(rawText) ?: return null
         val pickup = OfferTextFields.leg(rawText, listOf("A", "Recogida", "Retiro")) ?: return null
         val trip = OfferTextFields.leg(rawText, listOf("Viaje", "Trayecto")) ?: return null
         val totalKm = pickup.km + trip.km
-        displayedRate(rawText)?.let { rate ->
+        if (totalKm <= 0.0) return null
+        val rate = displayedRate(rawText)
+        val fare = if (rate != null) OfferTextFields.fareClosestTo(rawText, rate * totalKm)
+            else OfferTextFields.fareArs(rawText)
+        if (fare == null) return null
+        rate?.let {
             val calculatedRate = fare / totalKm
-            val tolerance = maxOf(25.0, rate * 0.08)
-            if (abs(calculatedRate - rate) > tolerance) return null
+            val tolerance = maxOf(25.0, it * 0.08)
+            if (abs(calculatedRate - it) > tolerance) return null
         }
         return RawOffer(
             platform = platform,

@@ -19,6 +19,8 @@ Cuando otra app está delante, Android no permite leer una pantalla oculta de Ub
 
 DiDi queda pendiente: en las ofertas reales observadas en este teléfono, su ventana no expuso texto a Accesibilidad. Su parser experimental permanece en el repositorio como referencia, pero el servicio no escucha DiDi, el APK no incluye su módulo y no se activa OCR ni captura de pantalla.
 
+Uber Priority puede mostrar un pago adicional por inicio del viaje además de la tarifa total. RideGuard ignora ese adicional como tarifa principal y, si Uber muestra ARS/km estimados, elige el importe coherente con los kilómetros totales. Hay pruebas basadas en dos capturas reales de Priority; la lectura de una oferta Priority en vivo aún debe comprobarse después de instalar esta versión.
+
 ## Cálculo
 
 El tiempo usado para ARS/h incluye la recogida, el viaje y una espera estimada para que suba el pasajero. La distancia incluye recogida y viaje:

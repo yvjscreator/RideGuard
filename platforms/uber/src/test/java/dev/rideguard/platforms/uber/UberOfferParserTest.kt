@@ -61,4 +61,60 @@ class UberOfferParserTest {
         assertEquals("Palermo", offer.destination?.zone)
         assertEquals("República Árabe Siria 3247", offer.destination?.street)
     }
+
+    @Test
+    fun `priority bonus before total fare does not suppress the offer`() {
+        val offer = UberOfferParser().parse(
+            "Uber Priority\n+ARS563.00 por inicio de viaje prioritario\n" +
+                "ARS4,104\nARS1,140/km (estimado)\nA 4 min (1.0 km)\n" +
+                "Viaje: 12 min (2.6 km)",
+        )
+
+        assertNotNull(offer)
+        assertEquals(4_104.0, offer!!.fareArs, 0.001)
+        assertEquals(3.6, offer.totalKm, 0.001)
+    }
+
+    @Test
+    fun `second observed priority offer also picks total fare`() {
+        val offer = UberOfferParser().parse(
+            "+ARS846.00 por inicio de viaje prioritario\nUber Priority\n" +
+                "ARS6,008\nARS733/km (estimado)\nA 1 min (0.2 km)\n" +
+                "Viaje: 27 min (8.0 km)",
+        )
+
+        assertNotNull(offer)
+        assertEquals(6_008.0, offer!!.fareArs, 0.001)
+        assertEquals(28, offer.totalMinutes)
+    }
+
+    @Test
+    fun `single accessibility line can contain bonus and total fare`() {
+        val offer = UberOfferParser().parse(
+            "Uber Priority +ARS563.00 por inicio de viaje prioritario " +
+                "ARS4,104 ARS1,140/km (estimado) A 4 min (1.0 km) Viaje: 12 min (2.6 km)",
+        )
+
+        assertEquals(4_104.0, offer?.fareArs ?: 0.0, 0.001)
+    }
+
+    @Test
+    fun `total fare before bonus on one line remains the total fare`() {
+        val offer = UberOfferParser().parse(
+            "ARS4,104 +ARS563.00 por inicio de viaje prioritario " +
+                "ARS1,140/km (estimado) A 4 min (1.0 km) Viaje: 12 min (2.6 km)",
+        )
+
+        assertEquals(4_104.0, offer?.fareArs ?: 0.0, 0.001)
+    }
+
+    @Test
+    fun `bonus alone is not mistaken for total fare`() {
+        val offer = UberOfferParser().parse(
+            "+ARS563.00 por inicio de viaje prioritario\nARS156/km (estimado)\n" +
+                "A 4 min (1.0 km)\nViaje: 12 min (2.6 km)",
+        )
+
+        assertEquals(null, offer)
+    }
 }
