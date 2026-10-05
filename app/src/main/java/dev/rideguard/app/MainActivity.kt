@@ -179,7 +179,7 @@ private fun SettingsScreen(
             if (selectedTab == 0) {
             Text("Ofertas claras mientras trabajas.")
             ServiceCard(accessibilityEnabled, activeNow, onOpenAccessibility, onOpenAppInfo)
-            Text("Toca «Evitar zona» solo con el auto detenido. La acción guarda el barrio indicado, nunca la calle; puedes quitarlo en Destinos.",
+            Text("Toca «Restringir zona» solo con el auto detenido. La acción guarda el barrio indicado, nunca la calle; puedes quitarlo en Destinos.",
                 style = MaterialTheme.typography.bodySmall)
             }
 
