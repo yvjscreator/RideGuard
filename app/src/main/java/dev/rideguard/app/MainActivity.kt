@@ -2,6 +2,7 @@ package dev.rideguard.app
 
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.app.TimePickerDialog
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -77,6 +78,7 @@ class MainActivity : ComponentActivity() {
                         startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                             "package:$packageName".toUri()))
                     },
+                    onOpenBackgroundSettings = { openBackgroundStartSettings(this) },
                     onSave = { settings ->
                         val saved = settingsStore.save(settings)
                         if (saved) sendBroadcast(DetectorSettingsBroadcast.createIntent(this, settings))
@@ -102,6 +104,7 @@ private fun SettingsScreen(
     accessibilityEnabled: Boolean,
     onOpenAccessibility: () -> Unit,
     onOpenAppInfo: () -> Unit,
+    onOpenBackgroundSettings: () -> Unit,
     onSave: (RideGuardSettings) -> Boolean,
 ) {
     var regularHourly by remember { mutableStateOf(initial.regularGoals.targetArsPerHour.plain()) }
@@ -178,7 +181,7 @@ private fun SettingsScreen(
             ) {
             if (selectedTab == 0) {
             Text("Ofertas claras mientras trabajas.")
-            ServiceCard(accessibilityEnabled, activeNow, onOpenAccessibility, onOpenAppInfo)
+            ServiceCard(accessibilityEnabled, activeNow, onOpenAccessibility, onOpenAppInfo, onOpenBackgroundSettings)
             Text("Toca «Restringir zona» solo con el auto detenido. La acción guarda el barrio indicado, nunca la calle; puedes quitarlo en Destinos.",
                 style = MaterialTheme.typography.bodySmall)
             }
@@ -377,7 +380,8 @@ private fun ProfileCard(title: String, hourly: String, perKm: String,
 
 @Composable
 private fun ServiceCard(enabled: Boolean, activeNow: Boolean,
-    onOpenAccessibility: () -> Unit, onOpenAppInfo: () -> Unit) {
+    onOpenAccessibility: () -> Unit, onOpenAppInfo: () -> Unit,
+    onOpenBackgroundSettings: () -> Unit) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             val status = when {
@@ -387,8 +391,9 @@ private fun ServiceCard(enabled: Boolean, activeNow: Boolean,
             }
             Text(status, fontWeight = FontWeight.Bold,
                 color = if (enabled) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error)
-            Text("Android mantiene el permiso de Accesibilidad. Si el teléfono lo desactiva al reiniciar, vuelve a habilitarlo aquí y revisa las restricciones de batería de RideGuard.")
+            Text("Además de Accesibilidad, algunos teléfonos requieren permitir el inicio automático o la ejecución en segundo plano para que RideGuard siga disponible al cerrar la app o reiniciar.")
             OutlinedButton(onClick = onOpenAccessibility) { Text("Abrir Accesibilidad") }
+            OutlinedButton(onClick = onOpenBackgroundSettings) { Text("Configurar inicio en segundo plano") }
             OutlinedButton(onClick = onOpenAppInfo) { Text("Abrir ajustes de RideGuard") }
         }
     }
@@ -450,6 +455,19 @@ private fun isAccessibilityServiceEnabled(context: Context): Boolean {
             info.resolveInfo.serviceInfo.packageName == context.packageName &&
                 info.resolveInfo.serviceInfo.name.endsWith("OfferAccessibilityService")
         }
+}
+
+private fun openBackgroundStartSettings(context: Context) {
+    val intents = listOf(
+        Intent().setComponent(ComponentName(
+            "com.miui.securitycenter",
+            "com.miui.permcenter.autostart.AutoStartManagementActivity",
+        )),
+        Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS),
+        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, "package:${context.packageName}".toUri()),
+    )
+    val intent = intents.firstOrNull { it.resolveActivity(context.packageManager) != null } ?: return
+    context.startActivity(intent)
 }
 
 private const val MAX_DESTINATION_RULES = 100
