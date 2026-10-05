@@ -44,7 +44,7 @@ Cada oferta se compara con dos mínimos independientes: ARS/h y ARS/km. Los valo
 
 La configuración tiene **listas separadas** de zonas y calles a evitar, vacías por defecto. Cada calle puede aplicarse en cualquier zona o limitarse a una zona concreta. Una calle restringida dispara la alerta aunque su zona no esté en la lista de zonas restringidas. La tarjeta mantiene el color de rentabilidad y añade un icono triangular y borde amarillo; no acepta ni rechaza la oferta.
 
-Cuando la oferta identifica la zona de destino de forma explícita (por ejemplo `CABA - Retiro`) y todavía no está restringida, aparece debajo de la tarjeta un botón **«Evitar zona: Retiro»**. Un toque la guarda inmediatamente; puedes deshacerlo desde **Configuración → Destinos**. El botón no aparece cuando el texto es ambiguo: un nombre de comercio o una calle no deben convertirse por error en zona restringida. El panel de métricas sigue sin recibir toques; solo el pequeño botón es interactivo. Úsalo únicamente con el vehículo detenido.
+Cuando la oferta identifica la zona de destino de forma explícita (por ejemplo `CABA - Retiro`) y todavía no está restringida, aparece debajo de la tarjeta un botón **«Restringir zona»**. Un toque restringe inmediatamente la zona detectada; puedes deshacerlo desde **Configuración → Destinos**. El botón no aparece cuando el texto es ambiguo: un nombre de comercio o una calle no deben convertirse por error en zona restringida. El panel de métricas sigue sin recibir toques; solo el pequeño botón es interactivo. Úsalo únicamente con el vehículo detenido.
 
 El parser lee únicamente la dirección **después del tramo del viaje**, no la recogida ni el texto del mapa de fondo. Reconoce formatos de dirección vistos en las ofertas, como `República Árabe Siria 3247, CABA - Palermo` (Uber) y `Palermo - Calle Silvio L. Ruggieri, 2767` (Cabify; en la muestra capturada era la recogida, no el destino). Compara nombres completos sin distinguir mayúsculas ni acentos, no fragmentos: una calle Avellaneda en Palermo no equivale a un destino en la localidad de Avellaneda. Si una calle se limitó a Palermo pero la oferta no indica una zona reconocible, no se dispara esa regla; puedes crearla sin zona si quieres alertar en todos los casos. Si el destino no está en el texto accesible, no habrá alerta. Una plataforma puede mostrar un nombre de lugar donde esperamos una zona, o cambiar el formato: la alerta es **orientativa**, no una garantía de ubicación o seguridad. No usa geocodificación, GPS ni red.
 
@@ -102,7 +102,7 @@ El servicio de Accesibilidad permanece habilitado a nivel del sistema; el horari
 
 - El servicio declara únicamente los paquetes conocidos de Uber Driver y Cabify Driver; también puede leer eventos de notificación emitidos por esas apps.
 - No se envían capturas, textos ni métricas a servidores.
-- La tarjeta de métricas no recibe toques. Solo el botón opcional «Evitar zona» recibe un toque y no cubre los controles de aceptar/rechazar de la app de conducción.
+- La tarjeta de métricas no recibe toques. Solo el botón opcional «Restringir zona» recibe un toque y no cubre los controles de aceptar/rechazar de la app de conducción.
 - El servicio no declara capacidad para ejecutar gestos.
 - No existe código para aceptar o rechazar ofertas.
 - OCR recibe imágenes explícitas; la captura de pantalla con `MediaProjection` no está activada automáticamente.
