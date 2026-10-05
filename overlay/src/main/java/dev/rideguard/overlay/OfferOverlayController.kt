@@ -57,33 +57,22 @@ class OfferOverlayController(
             }
             contentDescription = service.getString(R.string.overlay_close)
 
-            addView(LinearLayout(service).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-                addView(
-                    metricSection(
-                        label = "POR HORA",
-                        value = money(evaluation.metrics.arsPerHour),
-                        valueColor = hourlyColor,
-                        gravity = Gravity.START,
-                    ),
-                    LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f),
-                )
-                addView(View(service).apply { setBackgroundColor(DIVIDER_COLOR) },
-                    LinearLayout.LayoutParams(dp(1), dp(50)).apply {
-                        marginStart = dp(12)
-                        marginEnd = dp(12)
-                    })
-                addView(
-                    metricSection(
-                        label = "POR KM",
-                        value = money(evaluation.metrics.arsPerKm),
-                        valueColor = perKmColor,
-                        gravity = Gravity.END,
-                    ),
-                    LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f),
-                )
-            })
+            addView(metricSection(
+                label = "POR HORA",
+                value = money(evaluation.metrics.arsPerHour),
+                valueColor = hourlyColor,
+            ), LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ))
+            addView(metricSection(
+                label = "POR KM",
+                value = money(evaluation.metrics.arsPerKm),
+                valueColor = perKmColor,
+            ), LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).apply { topMargin = dp(10) })
 
             addView(LinearLayout(service).apply {
                 orientation = LinearLayout.HORIZONTAL
@@ -195,12 +184,15 @@ class OfferOverlayController(
         }
     }
 
-    private fun metricSection(label: String, value: String, valueColor: Int, gravity: Int) =
+    private fun metricSection(label: String, value: String, valueColor: Int) =
         LinearLayout(service).apply {
             orientation = LinearLayout.VERTICAL
-            this.gravity = gravity
-            addView(metricText(label, 11f, Typeface.BOLD, LABEL_TEXT).apply { this.gravity = gravity })
-            addView(metricText(value, 25f, Typeface.BOLD, valueColor).apply { this.gravity = gravity })
+            gravity = Gravity.START
+            addView(metricText(label, 11f, Typeface.BOLD, LABEL_TEXT).apply { gravity = Gravity.START })
+            addView(metricText(value, 25f, Typeface.BOLD, valueColor).apply {
+                gravity = Gravity.START
+                setSingleLine(true)
+            })
         }
 
     private fun metricText(text: String, sizeSp: Float, style: Int, color: Int = Color.WHITE) = TextView(service).apply {
@@ -225,7 +217,6 @@ class OfferOverlayController(
         val WARNING_YELLOW = 0xFFFFD54F.toInt()
         val CARD_BACKGROUND = 0xFF20242A.toInt()
         val CARD_BORDER = 0xFF59636E.toInt()
-        val DIVIDER_COLOR = 0xFF434A52.toInt()
         val LABEL_TEXT = 0xFFB7C0C8.toInt()
         val STATS_TEXT = 0xFFE1E6EA.toInt()
         val TAB_BACKGROUND = 0xFF2B3037.toInt()
