@@ -185,8 +185,8 @@ private fun SettingsScreen(
 
             if (selectedTab == 1) {
             Text("Objetivos por día", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text("Una oferta cumple solo si alcanza el mínimo por hora y por kilómetro. La recogida y la espera estimada están incluidas.")
-            Text("Verde: cumple ambos. Ámbar: queda hasta 5 % por debajo. Rojo: alguno queda más lejos.",
+            Text("Cada métrica se compara por separado con su mínimo. La recogida y la espera estimada están incluidas.")
+            Text("Verde: esa métrica cumple su objetivo. Rojo: queda por debajo. RideGuard muestra ambas por separado para que tú decidas si la oferta te conviene.",
                 style = MaterialTheme.typography.bodySmall)
             ProfileCard("Lunes a miércoles", regularHourly, regularKm,
                 onHourlyChange = { regularHourly = it }, onKmChange = { regularKm = it })
