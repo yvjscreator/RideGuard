@@ -7,7 +7,6 @@ import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
-import android.text.TextUtils
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
@@ -18,7 +17,7 @@ import android.widget.TextView
 import dev.rideguard.core.model.DestinationAlert
 import dev.rideguard.core.model.DurationDisplay
 import dev.rideguard.core.model.OfferEvaluation
-import dev.rideguard.core.model.OfferGrade
+import dev.rideguard.core.model.TargetFailure
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -37,25 +36,59 @@ class OfferOverlayController(
     fun show(evaluation: OfferEvaluation, destinationAlert: DestinationAlert?, quickAddZone: String? = null,
         onQuickAdd: (String) -> Unit = {}) {
         hide()
-        val backgroundColor = when (evaluation.grade) {
-            OfferGrade.GOOD -> 0xFF2E7D32.toInt()
-            OfferGrade.NEAR -> 0xFFF9A825.toInt()
-            OfferGrade.BAD -> 0xFFC62828.toInt()
-        }
+        val hourlyColor = if (TargetFailure.HOURLY_RATE in evaluation.unmetTargets) METRIC_BAD else METRIC_GOOD
+        val perKmColor = if (TargetFailure.PER_KM in evaluation.unmetTargets) METRIC_BAD else METRIC_GOOD
 
         val panel = LinearLayout(service).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(18), dp(14), dp(18), dp(14))
             background = GradientDrawable().apply {
-                color = android.content.res.ColorStateList.valueOf(backgroundColor)
-                cornerRadius = dp(18).toFloat()
-                setStroke(dp(if (destinationAlert == null) 2 else 4),
-                    if (destinationAlert == null) Color.WHITE else WARNING_YELLOW)
+                setColor(CARD_BACKGROUND)
+                if (quickAddZone == null) {
+                    cornerRadius = dp(18).toFloat()
+                } else {
+                    val radius = dp(18).toFloat()
+                    cornerRadii = floatArrayOf(radius, radius, radius, radius, 0f, 0f, 0f, 0f)
+                }
+                setStroke(
+                    dp(if (destinationAlert == null) 2 else 4),
+                    if (destinationAlert == null) CARD_BORDER else WARNING_YELLOW,
+                )
             }
             contentDescription = service.getString(R.string.overlay_close)
+
+            addView(LinearLayout(service).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                addView(
+                    metricSection(
+                        label = "POR HORA",
+                        value = money(evaluation.metrics.arsPerHour),
+                        valueColor = hourlyColor,
+                        gravity = Gravity.START,
+                    ),
+                    LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f),
+                )
+                addView(View(service).apply { setBackgroundColor(DIVIDER_COLOR) },
+                    LinearLayout.LayoutParams(dp(1), dp(50)).apply {
+                        marginStart = dp(12)
+                        marginEnd = dp(12)
+                    })
+                addView(
+                    metricSection(
+                        label = "POR KM",
+                        value = money(evaluation.metrics.arsPerKm),
+                        valueColor = perKmColor,
+                        gravity = Gravity.END,
+                    ),
+                    LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f),
+                )
+            })
+
             addView(LinearLayout(service).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.END or Gravity.CENTER_VERTICAL
+                setPadding(0, dp(8), 0, 0)
                 if (destinationAlert != null) {
                     addView(ImageView(service).apply {
                         setImageResource(R.drawable.ic_destination_warning)
@@ -63,12 +96,15 @@ class OfferOverlayController(
                             DestinationAlert.Kind.ZONE -> "Zona a evitar: ${destinationAlert.matchedName}"
                             DestinationAlert.Kind.STREET -> "Calle a evitar: ${destinationAlert.matchedName}"
                         }
-                    }, LinearLayout.LayoutParams(dp(26), dp(26)).apply { marginEnd = dp(8) })
+                    }, LinearLayout.LayoutParams(dp(22), dp(22)).apply { marginEnd = dp(8) })
                 }
-                addView(metricText("${money(evaluation.metrics.arsPerHour)}/h", 28f, Typeface.BOLD))
+                addView(metricText(
+                    "${DurationDisplay.clock(evaluation.metrics.totalMinutes)} min · ${decimal(evaluation.metrics.totalKm)} km",
+                    14f,
+                    Typeface.NORMAL,
+                    STATS_TEXT,
+                ))
             })
-            addView(metricText("${money(evaluation.metrics.arsPerKm)}/km", 21f, Typeface.BOLD))
-            addView(metricText("${DurationDisplay.clock(evaluation.metrics.totalMinutes)} min - ${decimal(evaluation.metrics.totalKm)} km", 14f, Typeface.NORMAL))
         }
 
         val params = WindowManager.LayoutParams(
@@ -90,21 +126,25 @@ class OfferOverlayController(
         if (quickAddZone != null) {
             quickZone = quickAddZone
             val button = Button(service).apply {
-                text = "Evitar zona: $quickAddZone"
-                textSize = 14f
+                text = "Restringir zona"
+                textSize = 13f
                 isAllCaps = false
-                minHeight = dp(48)
-                maxWidth = service.resources.displayMetrics.widthPixels - dp(32)
-                maxLines = 2
-                ellipsize = TextUtils.TruncateAt.END
-                setTextColor(BRAND_INK)
+                minWidth = 0
+                minHeight = dp(42)
+                setPadding(dp(12), 0, dp(12), 0)
+                setTextColor(STATS_TEXT)
                 background = GradientDrawable().apply {
-                    setColor(BRAND_AQUA)
-                    cornerRadius = dp(14).toFloat()
+                    setColor(TAB_BACKGROUND)
+                    val radius = dp(18).toFloat()
+                    cornerRadii = floatArrayOf(0f, 0f, 0f, 0f, radius, radius, radius, radius)
+                    setStroke(
+                        dp(if (destinationAlert == null) 2 else 4),
+                        if (destinationAlert == null) CARD_BORDER else WARNING_YELLOW,
+                    )
                 }
                 setOnClickListener {
                     isEnabled = false
-                    text = "Guardando zona…"
+                    text = "Restringiendo…"
                     onQuickAdd(quickAddZone)
                 }
             }
@@ -123,7 +163,8 @@ class OfferOverlayController(
             }
             panel.post {
                 if (overlay === panel) {
-                    buttonParams.y += panel.height + dp(8)
+                    buttonParams.width = panel.width
+                    buttonParams.y += panel.height - dp(2)
                     runCatching { windowManager.addView(button, buttonParams) }
                         .onSuccess { quickButton = button }
                 }
@@ -149,15 +190,23 @@ class OfferOverlayController(
     fun resolveQuickAdd(zone: String, saved: Boolean) {
         if (quickZone != zone) return
         quickButton?.apply {
-            text = if (saved) "Zona añadida" else "No se pudo guardar · Reintentar"
+            text = if (saved) "Zona restringida" else "No se pudo restringir · Reintentar"
             isEnabled = !saved
         }
     }
 
-    private fun metricText(text: String, sizeSp: Float, style: Int) = TextView(service).apply {
+    private fun metricSection(label: String, value: String, valueColor: Int, gravity: Int) =
+        LinearLayout(service).apply {
+            orientation = LinearLayout.VERTICAL
+            this.gravity = gravity
+            addView(metricText(label, 11f, Typeface.BOLD, LABEL_TEXT).apply { this.gravity = gravity })
+            addView(metricText(value, 25f, Typeface.BOLD, valueColor).apply { this.gravity = gravity })
+        }
+
+    private fun metricText(text: String, sizeSp: Float, style: Int, color: Int = Color.WHITE) = TextView(service).apply {
         this.text = text
         textSize = sizeSp
-        setTextColor(Color.WHITE)
+        setTextColor(color)
         setTypeface(typeface, style)
         gravity = Gravity.END
     }
@@ -174,7 +223,13 @@ class OfferOverlayController(
     private companion object {
         const val DISPLAY_DURATION_MS = 18_000L
         val WARNING_YELLOW = 0xFFFFD54F.toInt()
-        val BRAND_AQUA = 0xFF5FE7E8.toInt()
-        val BRAND_INK = 0xFF00363E.toInt()
+        val CARD_BACKGROUND = 0xFF20242A.toInt()
+        val CARD_BORDER = 0xFF59636E.toInt()
+        val DIVIDER_COLOR = 0xFF434A52.toInt()
+        val LABEL_TEXT = 0xFFB7C0C8.toInt()
+        val STATS_TEXT = 0xFFE1E6EA.toInt()
+        val TAB_BACKGROUND = 0xFF2B3037.toInt()
+        val METRIC_GOOD = 0xFF66D17A.toInt()
+        val METRIC_BAD = 0xFFFF6B6B.toInt()
     }
 }
