@@ -7,7 +7,6 @@ import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
-import android.text.TextUtils
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
@@ -45,7 +44,12 @@ class OfferOverlayController(
             setPadding(dp(18), dp(14), dp(18), dp(14))
             background = GradientDrawable().apply {
                 setColor(CARD_BACKGROUND)
-                cornerRadius = dp(18).toFloat()
+                if (quickAddZone == null) {
+                    cornerRadius = dp(18).toFloat()
+                } else {
+                    val radius = dp(18).toFloat()
+                    cornerRadii = floatArrayOf(radius, radius, radius, radius, 0f, 0f, 0f, 0f)
+                }
                 setStroke(
                     dp(if (destinationAlert == null) 2 else 4),
                     if (destinationAlert == null) CARD_BORDER else WARNING_YELLOW,
@@ -122,21 +126,25 @@ class OfferOverlayController(
         if (quickAddZone != null) {
             quickZone = quickAddZone
             val button = Button(service).apply {
-                text = "Evitar zona: $quickAddZone"
-                textSize = 14f
+                text = "Restringir zona"
+                textSize = 13f
                 isAllCaps = false
-                minHeight = dp(48)
-                maxWidth = service.resources.displayMetrics.widthPixels - dp(32)
-                maxLines = 2
-                ellipsize = TextUtils.TruncateAt.END
-                setTextColor(BRAND_INK)
+                minWidth = 0
+                minHeight = dp(42)
+                setPadding(dp(12), 0, dp(12), 0)
+                setTextColor(STATS_TEXT)
                 background = GradientDrawable().apply {
-                    setColor(BRAND_AQUA)
-                    cornerRadius = dp(14).toFloat()
+                    setColor(TAB_BACKGROUND)
+                    val radius = dp(18).toFloat()
+                    cornerRadii = floatArrayOf(0f, 0f, 0f, 0f, radius, radius, radius, radius)
+                    setStroke(
+                        dp(if (destinationAlert == null) 2 else 4),
+                        if (destinationAlert == null) CARD_BORDER else WARNING_YELLOW,
+                    )
                 }
                 setOnClickListener {
                     isEnabled = false
-                    text = "Guardando zona…"
+                    text = "Restringiendo…"
                     onQuickAdd(quickAddZone)
                 }
             }
@@ -155,7 +163,8 @@ class OfferOverlayController(
             }
             panel.post {
                 if (overlay === panel) {
-                    buttonParams.y += panel.height + dp(8)
+                    buttonParams.width = panel.width
+                    buttonParams.y += panel.height - dp(2)
                     runCatching { windowManager.addView(button, buttonParams) }
                         .onSuccess { quickButton = button }
                 }
@@ -181,7 +190,7 @@ class OfferOverlayController(
     fun resolveQuickAdd(zone: String, saved: Boolean) {
         if (quickZone != zone) return
         quickButton?.apply {
-            text = if (saved) "Zona añadida" else "No se pudo guardar · Reintentar"
+            text = if (saved) "Zona restringida" else "No se pudo restringir · Reintentar"
             isEnabled = !saved
         }
     }
@@ -219,9 +228,8 @@ class OfferOverlayController(
         val DIVIDER_COLOR = 0xFF434A52.toInt()
         val LABEL_TEXT = 0xFFB7C0C8.toInt()
         val STATS_TEXT = 0xFFE1E6EA.toInt()
+        val TAB_BACKGROUND = 0xFF2B3037.toInt()
         val METRIC_GOOD = 0xFF66D17A.toInt()
         val METRIC_BAD = 0xFFFF6B6B.toInt()
-        val BRAND_AQUA = 0xFF5FE7E8.toInt()
-        val BRAND_INK = 0xFF00363E.toInt()
     }
 }
