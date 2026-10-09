@@ -21,6 +21,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -51,6 +52,7 @@ import dev.rideguard.core.model.PickupWaitEstimate
 import dev.rideguard.core.model.WeeklySchedule
 import dev.rideguard.core.settings.RideGuardSettings
 import dev.rideguard.core.settings.RideGuardSettingsStore
+import dev.rideguard.core.settings.RateUnitStyle
 import dev.rideguard.detection.accessibility.DetectorSettingsBroadcast
 import java.text.NumberFormat
 import java.time.DayOfWeek
@@ -118,6 +120,7 @@ private fun SettingsScreen(
     var streetDraft by remember { mutableStateOf("") }
     var streetZoneDraft by remember { mutableStateOf("") }
     var schedule by remember { mutableStateOf(initial.schedule) }
+    var rateUnitStyle by remember { mutableStateOf(initial.rateUnitStyle) }
     var savedSchedule by remember { mutableStateOf(initial.schedule) }
     var message by remember { mutableStateOf("") }
     var selectedTab by remember { mutableStateOf(0) }
@@ -151,6 +154,7 @@ private fun SettingsScreen(
                 schedule = schedule,
                 avoidedZones = avoidedZones,
                 avoidedStreets = avoidedStreets,
+                rateUnitStyle = rateUnitStyle,
             )
             if (onSave(settings)) {
                 savedSchedule = settings.schedule
@@ -182,6 +186,27 @@ private fun SettingsScreen(
             if (selectedTab == 0) {
             Text("Ofertas claras mientras trabajas.")
             ServiceCard(accessibilityEnabled, activeNow, onOpenAccessibility, onOpenAppInfo, onOpenBackgroundSettings)
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Estilo de la tarjeta", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Elige cómo se indica el precio por hora y por kilómetro. El reloj y la bandera de los totales permanecen debajo.",
+                        style = MaterialTheme.typography.bodySmall)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(
+                            selected = rateUnitStyle == RateUnitStyle.ICONS,
+                            onClick = { rateUnitStyle = RateUnitStyle.ICONS },
+                            label = { Text("Iconos") },
+                        )
+                        FilterChip(
+                            selected = rateUnitStyle == RateUnitStyle.TEXT,
+                            onClick = { rateUnitStyle = RateUnitStyle.TEXT },
+                            label = { Text("Texto /h, /km") },
+                        )
+                    }
+                    Text("Pulsa «Guardar cambios» para aplicar el estilo a las próximas ofertas.",
+                        style = MaterialTheme.typography.bodySmall)
+                }
+            }
             Text("Toca «Restringir zona» solo con el auto detenido. La acción guarda el barrio indicado, nunca la calle; puedes quitarlo en Destinos.",
                 style = MaterialTheme.typography.bodySmall)
             }

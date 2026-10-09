@@ -7,6 +7,11 @@ import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
+import android.text.Spannable
+import android.text.SpannableStringBuilder
+import android.text.style.ForegroundColorSpan
+import android.text.style.RelativeSizeSpan
+import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
@@ -18,6 +23,7 @@ import dev.rideguard.core.model.DestinationAlert
 import dev.rideguard.core.model.DurationDisplay
 import dev.rideguard.core.model.OfferEvaluation
 import dev.rideguard.core.model.TargetFailure
+import dev.rideguard.core.settings.RateUnitStyle
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -34,6 +40,7 @@ class OfferOverlayController(
     fun isShowing(): Boolean = overlay != null
 
     fun show(evaluation: OfferEvaluation, destinationAlert: DestinationAlert?, quickAddZone: String? = null,
+        rateUnitStyle: RateUnitStyle = RateUnitStyle.ICONS,
         onQuickAdd: (String) -> Unit = {}) {
         hide()
         val hourlyColor = if (TargetFailure.HOURLY_RATE in evaluation.unmetTargets) METRIC_BAD else METRIC_GOOD
@@ -41,7 +48,7 @@ class OfferOverlayController(
 
         val panel = LinearLayout(service).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(14), dp(10), dp(14), dp(8))
+            setPadding(dp(12), dp(8), dp(12), dp(8))
             background = GradientDrawable().apply {
                 setColor(CARD_BACKGROUND)
                 if (quickAddZone == null) {
@@ -57,23 +64,25 @@ class OfferOverlayController(
             }
             contentDescription = service.getString(R.string.overlay_close)
 
-            addView(metricSection(
-                label = "POR HORA",
+            addView(metricRow(
                 value = money(evaluation.metrics.arsPerHour),
+                unit = "/h",
                 valueColor = hourlyColor,
+                rateUnitStyle = rateUnitStyle,
                 destinationAlert = destinationAlert,
             ), LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
             ))
-            addView(metricSection(
-                label = "POR KM",
+            addView(metricRow(
                 value = money(evaluation.metrics.arsPerKm),
+                unit = "/km",
                 valueColor = perKmColor,
+                rateUnitStyle = rateUnitStyle,
             ), LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
-            ).apply { topMargin = dp(4) })
+            ).apply { topMargin = dp(1) })
 
             addView(statRow(
                 R.drawable.ic_offer_clock,
@@ -82,7 +91,7 @@ class OfferOverlayController(
             ), LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
-            ).apply { topMargin = dp(6) })
+            ).apply { topMargin = dp(5) })
             addView(statRow(
                 R.drawable.ic_offer_finish,
                 "${decimal(evaluation.metrics.totalKm)} km",
@@ -93,9 +102,13 @@ class OfferOverlayController(
             ).apply { topMargin = dp(2) })
         }
 
-        val panelWidth = minOf(dp(180), service.resources.displayMetrics.widthPixels - dp(32))
+        val maxPanelWidth = service.resources.displayMetrics.widthPixels - dp(32)
+        panel.measure(
+            View.MeasureSpec.makeMeasureSpec(maxPanelWidth, View.MeasureSpec.AT_MOST),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+        )
         val params = WindowManager.LayoutParams(
-            panelWidth,
+            panel.measuredWidth,
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
@@ -182,33 +195,54 @@ class OfferOverlayController(
         }
     }
 
-    private fun metricSection(
-        label: String,
+    private fun metricRow(
         value: String,
+        unit: String,
         valueColor: Int,
+        rateUnitStyle: RateUnitStyle,
         destinationAlert: DestinationAlert? = null,
     ) =
         LinearLayout(service).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.START
-            addView(LinearLayout(service).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-                addView(metricText(label, 11f, Typeface.BOLD, LABEL_TEXT).apply { gravity = Gravity.START })
-                if (destinationAlert != null) {
-                    addView(ImageView(service).apply {
-                        setImageResource(R.drawable.ic_destination_warning)
-                        contentDescription = when (destinationAlert.kind) {
-                            DestinationAlert.Kind.ZONE -> "Zona a evitar: ${destinationAlert.matchedName}"
-                            DestinationAlert.Kind.STREET -> "Calle a evitar: ${destinationAlert.matchedName}"
-                        }
-                    }, LinearLayout.LayoutParams(dp(16), dp(16)).apply { marginStart = dp(6) })
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.START or Gravity.CENTER_VERTICAL
+            val text: CharSequence = if (rateUnitStyle == RateUnitStyle.TEXT) {
+                SpannableStringBuilder(value).append(" ").append(unit).apply {
+                    val unitStart = length - unit.length
+                    setSpan(
+                        ForegroundColorSpan(LABEL_TEXT), unitStart, length,
+                        Spannable.SPAN_EXCLUSIVE_EXCLUSIVE,
+                    )
+                    setSpan(
+                        RelativeSizeSpan(0.58f), unitStart, length,
+                        Spannable.SPAN_EXCLUSIVE_EXCLUSIVE,
+                    )
                 }
-            })
-            addView(metricText(value, 25f, Typeface.BOLD, valueColor).apply {
+            } else value
+            addView(metricText(text, 25f, Typeface.BOLD, valueColor).apply {
                 gravity = Gravity.START
                 setSingleLine(true)
+                maxWidth = service.resources.displayMetrics.widthPixels -
+                    dp(56 + (if (destinationAlert == null) 0 else 22) +
+                        (if (rateUnitStyle == RateUnitStyle.ICONS) 20 else 0))
+                setAutoSizeTextTypeUniformWithConfiguration(18, 25, 1, TypedValue.COMPLEX_UNIT_SP)
+                contentDescription = "${if (unit == "/h") "Por hora" else "Por kilómetro"}: $value"
             })
+            if (rateUnitStyle == RateUnitStyle.ICONS) {
+                addView(ImageView(service).apply {
+                    setImageResource(if (unit == "/h") R.drawable.ic_offer_clock else R.drawable.ic_rate_road)
+                    setColorFilter(LABEL_TEXT)
+                    importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+                }, LinearLayout.LayoutParams(dp(16), dp(16)).apply { marginStart = dp(4) })
+            }
+            if (destinationAlert != null) {
+                addView(ImageView(service).apply {
+                    setImageResource(R.drawable.ic_destination_warning)
+                    contentDescription = when (destinationAlert.kind) {
+                        DestinationAlert.Kind.ZONE -> "Zona a evitar: ${destinationAlert.matchedName}"
+                        DestinationAlert.Kind.STREET -> "Calle a evitar: ${destinationAlert.matchedName}"
+                    }
+                }, LinearLayout.LayoutParams(dp(16), dp(16)).apply { marginStart = dp(6) })
+            }
         }
 
     private fun statRow(icon: Int, value: String, description: String) = LinearLayout(service).apply {
@@ -225,7 +259,7 @@ class OfferOverlayController(
         })
     }
 
-    private fun metricText(text: String, sizeSp: Float, style: Int, color: Int = Color.WHITE) = TextView(service).apply {
+    private fun metricText(text: CharSequence, sizeSp: Float, style: Int, color: Int = Color.WHITE) = TextView(service).apply {
         this.text = text
         textSize = sizeSp
         setTextColor(color)

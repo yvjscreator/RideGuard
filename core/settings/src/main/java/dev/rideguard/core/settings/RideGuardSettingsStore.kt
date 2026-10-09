@@ -11,6 +11,15 @@ import java.time.LocalDateTime
 import org.json.JSONArray
 import org.json.JSONObject
 
+enum class RateUnitStyle {
+    TEXT,
+    ICONS;
+
+    companion object {
+        fun fromStored(value: String?): RateUnitStyle = values().firstOrNull { it.name == value } ?: ICONS
+    }
+}
+
 data class RideGuardSettings(
     val regularGoals: DriverGoals = DriverGoals(15_000.0, 650.0),
     val busyDaysGoals: DriverGoals = DriverGoals(18_000.0, 750.0),
@@ -18,6 +27,7 @@ data class RideGuardSettings(
     val schedule: WeeklySchedule = WeeklySchedule(),
     val avoidedZones: List<String> = emptyList(),
     val avoidedStreets: List<AvoidedStreet> = emptyList(),
+    val rateUnitStyle: RateUnitStyle = RateUnitStyle.ICONS,
 ) {
     fun goalsFor(at: LocalDateTime): DriverGoals? = when (schedule.activeDay(at)) {
         DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY -> regularGoals
@@ -46,6 +56,7 @@ class RideGuardSettingsStore(context: Context) {
             usualWorkHours = preferences.getFloat(USUAL_HOURS, defaults.usualWorkHours.toFloat()).toDouble(),
             avoidedZones = readZones(preferences.getString(AVOIDED_ZONES, null)),
             avoidedStreets = readStreets(preferences.getString(AVOIDED_STREETS, null)),
+            rateUnitStyle = RateUnitStyle.fromStored(preferences.getString(RATE_UNIT_STYLE, null)),
             schedule = WeeklySchedule(
                 DayOfWeek.values().map { day ->
                     val default = defaults.schedule.days.first { it.day == day }
@@ -70,6 +81,7 @@ class RideGuardSettingsStore(context: Context) {
             .putFloat(BUSY_HOURLY, settings.busyDaysGoals.targetArsPerHour.toFloat())
             .putFloat(BUSY_KM, settings.busyDaysGoals.minimumArsPerKm.toFloat())
             .putFloat(USUAL_HOURS, settings.usualWorkHours.toFloat())
+            .putString(RATE_UNIT_STYLE, settings.rateUnitStyle.name)
             .putString(AVOIDED_ZONES, JSONArray(settings.avoidedZones).toString())
             .putString(AVOIDED_STREETS, JSONArray().apply {
                 settings.avoidedStreets.forEach { rule ->
@@ -103,6 +115,7 @@ class RideGuardSettingsStore(context: Context) {
         const val BUSY_HOURLY = "busy_hourly"
         const val BUSY_KM = "busy_km"
         const val USUAL_HOURS = "usual_hours"
+        const val RATE_UNIT_STYLE = "rate_unit_style"
         const val AVOIDED_ZONES = "avoided_zones"
         const val AVOIDED_STREETS = "avoided_streets"
         const val MAX_RULES = 100

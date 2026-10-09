@@ -7,6 +7,7 @@ import dev.rideguard.core.model.DriverGoals
 import dev.rideguard.core.model.WeeklySchedule
 import dev.rideguard.core.model.WorkDaySchedule
 import dev.rideguard.core.settings.RideGuardSettings
+import dev.rideguard.core.settings.RateUnitStyle
 import java.time.DayOfWeek
 
 /** Sends the saved settings to the detector process without relying on cross-process preferences caching. */
@@ -22,6 +23,7 @@ object DetectorSettingsBroadcast {
             .putExtra(BUSY_HOURLY, settings.busyDaysGoals.targetArsPerHour)
             .putExtra(BUSY_KM, settings.busyDaysGoals.minimumArsPerKm)
             .putExtra(USUAL_HOURS, settings.usualWorkHours)
+            .putExtra(RATE_UNIT_STYLE, settings.rateUnitStyle.name)
             .putExtra(ENABLED_DAYS, days.map { it.enabled }.toBooleanArray())
             .putExtra(START_MINUTES, days.map { it.startMinute }.toIntArray())
             .putExtra(END_MINUTES, days.map { it.endMinute }.toIntArray())
@@ -52,6 +54,7 @@ object DetectorSettingsBroadcast {
                     intent.getDoubleExtra(BUSY_KM, defaults.busyDaysGoals.minimumArsPerKm),
                 ),
                 usualWorkHours = intent.getDoubleExtra(USUAL_HOURS, defaults.usualWorkHours),
+                rateUnitStyle = RateUnitStyle.fromStored(intent.getStringExtra(RATE_UNIT_STYLE)),
                 schedule = WeeklySchedule(DayOfWeek.values().mapIndexed { index, day ->
                     WorkDaySchedule(day, enabled[index], starts[index], ends[index])
                 }),
@@ -68,6 +71,7 @@ object DetectorSettingsBroadcast {
     private const val BUSY_HOURLY = "busy_hourly"
     private const val BUSY_KM = "busy_km"
     private const val USUAL_HOURS = "usual_hours"
+    private const val RATE_UNIT_STYLE = "rate_unit_style"
     private const val ENABLED_DAYS = "enabled_days"
     private const val START_MINUTES = "start_minutes"
     private const val END_MINUTES = "end_minutes"

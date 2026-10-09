@@ -180,7 +180,7 @@ class OfferAccessibilityService : AccessibilityService() {
         val quickZone = offer.destination?.takeIf { it.zoneConfirmed }?.zone
             ?.takeIf { !DestinationAlerts.isZoneAvoided(it, currentSettings.avoidedZones) }
         val result = runCatching {
-            overlay.show(evaluation, alert, quickZone) { zone ->
+            overlay.show(evaluation, alert, quickZone, currentSettings.rateUnitStyle) { zone ->
                 sendBroadcast(QuickAvoidZoneBroadcast.request(this, zone))
             }
         }

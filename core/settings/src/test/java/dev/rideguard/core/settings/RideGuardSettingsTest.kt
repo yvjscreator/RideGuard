@@ -9,6 +9,14 @@ import org.junit.Test
 
 class RideGuardSettingsTest {
     @Test
+    fun `rate unit style supports both choices and a safe fallback`() {
+        assertEquals(RateUnitStyle.ICONS, RideGuardSettings().rateUnitStyle)
+        assertEquals(RateUnitStyle.ICONS, RateUnitStyle.fromStored("ICONS"))
+        assertEquals(RateUnitStyle.TEXT, RateUnitStyle.fromStored("TEXT"))
+        assertEquals(RateUnitStyle.ICONS, RateUnitStyle.fromStored("unknown"))
+    }
+
+    @Test
     fun `overnight shift uses the goals of its starting day`() {
         val schedule = WeeklySchedule(DayOfWeek.values().map { day ->
             if (day == DayOfWeek.WEDNESDAY) WorkDaySchedule(day, true, 22 * 60, 2 * 60)
